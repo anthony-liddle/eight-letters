@@ -189,6 +189,26 @@ describe('Game', () => {
       screen.getByRole('button', { name: /unmute sound/i }),
     ).toBeInTheDocument();
   });
+
+  it('switches and persists the theme, and names the right fonts', () => {
+    renderGame();
+    fireEvent.click(screen.getByRole('button', { name: 'Cute' }));
+    expect(document.documentElement.dataset.theme).toBe('cute');
+    expect(localStorage.getItem('e8-theme')).toBe('cute');
+    expect(screen.getByText(/Set in Fredoka and Nunito/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Classic' }));
+    expect(document.documentElement.dataset.theme).toBe('letterpress');
+    expect(
+      screen.getByText(/Set in Fraunces and Spectral/i),
+    ).toBeInTheDocument();
+  });
+
+  it('lists the source word in the glossary legend', () => {
+    renderGame();
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    expect(within(glossary).getByText('source word')).toBeInTheDocument();
+  });
 });
 
 describe('Game mode state retention', () => {
