@@ -14,12 +14,14 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   MAX_SOURCE_WORDS,
+  RARE_THRESHOLD_SIZES,
   REQUIRE_ETYMOLOGY,
   WIKTIONARY_CONCURRENCY,
 } from './lib/config.ts';
 import {
   loadCommonPool,
   loadEnable,
+  loadScowlWords,
   loadSourceCandidates,
 } from './lib/sources.ts';
 import { enrichWord, type WordEntry } from './lib/wiktionary.ts';
@@ -61,6 +63,15 @@ async function main(): Promise<void> {
       `(${(commonRaw.length - common.length).toLocaleString()} dropped as not in ENABLE).`,
   );
 
+  console.log('SCOWL: deriving rare set (ENABLE minus SCOWL size 70).');
+  const scowl70 = new Set(await loadScowlWords(RARE_THRESHOLD_SIZES));
+  const rare = enable.filter((w) => !scowl70.has(w));
+  await writeAsset('rare.txt', rare.join('\n'));
+  console.log(
+    `  ${rare.length.toLocaleString()} rare words ` +
+      `(${((rare.length / enable.length) * 100).toFixed(0)}% of ENABLE).`,
+  );
+
   console.log('SCOWL: deriving 8-letter source candidates.');
   const exclude = await loadExcludeList();
   const candidates = (await loadSourceCandidates())
@@ -100,6 +111,7 @@ async function main(): Promise<void> {
     counts: {
       enable: enable.length,
       common: common.length,
+      rare: rare.length,
       sourcePool: sourcePool.length,
     },
     attribution: {

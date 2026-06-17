@@ -30,6 +30,7 @@ export function validateGuess(
     word,
     score: scoreWord(word),
     isCommon: puzzle.commonWords.has(word),
+    isRare: puzzle.rareWords.has(word),
     isSourceWord: word === puzzle.sourceWord,
   };
 }

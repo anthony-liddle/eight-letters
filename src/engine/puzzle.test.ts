@@ -18,10 +18,14 @@ const ENABLE = [
   'ad', // too short
 ];
 const COMMON = ['sea', 'near', 'dean', 'serenade'];
+// 'sane' is valid but below the SCOWL-70 threshold: a rare find. 'sneer' and
+// 'eased' are valid-but-not-common and not rare: ordinary bonus.
+const RARE = ['sane'];
 
 const dictionary = createListDictionary(ENABLE);
 const commonPool = createListWordSource(COMMON);
-const puzzle = createPuzzle('serenade', dictionary, commonPool);
+const rarePool = createListWordSource(RARE);
+const puzzle = createPuzzle('serenade', dictionary, commonPool, rarePool);
 
 describe('createPuzzle', () => {
   it('derives the rack as the sorted source letters', () => {
@@ -42,6 +46,12 @@ describe('createPuzzle', () => {
     // sea 1 + near 3 + dean 3 + serenade 15
     expect(puzzle.commonTotal).toBe(22);
   });
+
+  it('collects formable rare words, disjoint from the common set', () => {
+    expect(puzzle.rareWords).toEqual(new Set(['sane']));
+    for (const w of puzzle.rareWords)
+      expect(puzzle.commonWords.has(w)).toBe(false);
+  });
 });
 
 describe('validateGuess', () => {
@@ -53,13 +63,25 @@ describe('validateGuess', () => {
       word: 'sea',
       score: 1,
       isCommon: true,
+      isRare: false,
       isSourceWord: false,
     });
   });
 
-  it('accepts an ENABLE-only word as a non-common valid find', () => {
-    const result = validateGuess('sneer', puzzle, empty);
-    expect(result).toMatchObject({ kind: 'valid', isCommon: false });
+  it('marks an ordinary bonus word: valid, not common, not rare', () => {
+    expect(validateGuess('sneer', puzzle, empty)).toMatchObject({
+      kind: 'valid',
+      isCommon: false,
+      isRare: false,
+    });
+  });
+
+  it('marks a rare find: valid, not common, rare', () => {
+    expect(validateGuess('sane', puzzle, empty)).toMatchObject({
+      kind: 'valid',
+      isCommon: false,
+      isRare: true,
+    });
   });
 
   it('flags the source word', () => {

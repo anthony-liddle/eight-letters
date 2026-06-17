@@ -23,6 +23,7 @@
   --tile-face: #f7f3e8;
   --tile-edge: #c9bd9c;
   --good: #4b6a52; /* sage: a quiet mark for "in the set" */
+  --discovery: #3e5c7e; /* cool ink-blue: bonus and rare finds only, ~6:1 on paper */
 
   --control-h: 2.25rem; /* shared height for every header control */
   --shadow-press: 0 1px 0 #fffaf0 inset, 0 2px 3px rgba(33, 28, 21, 0.22);
@@ -569,38 +570,86 @@ button {
   font-size: 1.02rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.32rem;
+  gap: 0.3rem;
   text-transform: lowercase;
 }
-/* mark, not colour alone: a filled square for the common set, hollow for bonus */
-.found__word::before {
-  content: '';
+
+/* Every found word is a positive find. Four states, all filled, told apart by
+   mark SHAPE (not colour alone): green square (set), blue dagger (bonus), blue
+   diamond (rare), amber diamond (the source-word crown). */
+.found__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.7em;
+  line-height: 1;
+  flex: none;
+  font-style: normal;
+}
+.found__word--set .found__mark,
+.found__word--source .found__mark {
   width: 0.5em;
   height: 0.5em;
-  border: 1.5px solid var(--ink-soft);
   border-radius: 1px;
 }
-.found__word--common::before {
+.found__word--set .found__mark {
   background: var(--good);
-  border-color: var(--good);
+}
+.found__word--source .found__mark {
+  background: var(--crown);
+  transform: rotate(45deg); /* the crown diamond, unchanged */
+}
+.found__word--bonus .found__mark,
+.found__word--rare .found__mark {
+  color: var(--discovery);
+}
+.found__word--rare .found__mark {
+  font-size: 0.8em;
+}
+
+.found__word--rare {
+  color: var(--discovery);
 }
 .found__word--source {
   color: var(--crown-deep);
   font-weight: 600;
   font-style: italic;
 }
-.found__word--source::before {
-  background: var(--crown);
-  border-color: var(--crown);
-  transform: rotate(45deg);
+/* Points are the reward, so bonus and rare show them inline, in discovery blue. */
+.found__points {
+  color: var(--discovery);
+  font-weight: 600;
+  font-size: 0.82em;
 }
+.found__rare-note {
+  color: var(--discovery);
+  font-size: 0.68em;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+/* Open-ended tallies: a plain count, never a denominator. */
+.found__tallies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  margin: 0 0 0.8rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
+}
+.found__tally {
+  color: var(--discovery);
+}
+
 .found__empty {
   color: var(--ink-faint);
   font-style: italic;
 }
 .legend {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
   font-size: 0.72rem;
   color: var(--ink-soft);
   margin-top: 0.5rem;
@@ -610,17 +659,26 @@ button {
   align-items: center;
   gap: 0.3rem;
 }
-.legend i {
+.legend-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.7em;
+  line-height: 1;
+  font-style: normal;
+}
+.legend-mark--set {
   width: 0.5em;
   height: 0.5em;
   border-radius: 1px;
-  display: inline-block;
-}
-.legend .is-common {
   background: var(--good);
 }
-.legend .is-bonus {
-  border: 1.5px solid var(--ink-soft);
+.legend-mark--bonus,
+.legend-mark--rare {
+  color: var(--discovery);
+}
+.legend-mark--rare {
+  font-size: 0.85em;
 }
 
 /* ---- Reveal (the crown) ------------------------------------------------- */

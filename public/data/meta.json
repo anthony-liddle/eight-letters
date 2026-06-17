@@ -1,8 +1,9 @@
 {
-  "generatedAt": "2026-06-17T04:23:26.817Z",
+  "generatedAt": "2026-06-17T05:06:08.020Z",
   "counts": {
     "enable": 172727,
     "common": 10861,
+    "rare": 70724,
     "sourcePool": 707
   },
   "attribution": {

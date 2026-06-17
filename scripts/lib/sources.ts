@@ -89,20 +89,28 @@ async function readBand(
 }
 
 /**
- * The common pool: the tier denominator source. Union of the chosen SCOWL bands
- * across the chosen spelling variants, deduped, length >= minimum.
+ * Union of the given SCOWL bands across the chosen spelling variants, deduped,
+ * length >= minimum. The building block for both the common pool and the rarity
+ * threshold set.
  */
-export async function loadCommonPool(): Promise<string[]> {
+export async function loadScowlWords(
+  sizes: readonly number[],
+): Promise<string[]> {
   const dir = await scowlExtractDir();
   const words = new Set<string>();
   for (const variant of SCOWL_VARIANTS) {
-    for (const size of COMMON_POOL_SIZES) {
+    for (const size of sizes) {
       for (const w of await readBand(dir, variant, size)) {
         if (w.length >= MIN_WORD_LENGTH) words.add(w);
       }
     }
   }
   return [...words].sort();
+}
+
+/** The common pool: the tier denominator source. */
+export function loadCommonPool(): Promise<string[]> {
+  return loadScowlWords(COMMON_POOL_SIZES);
 }
 
 /**

@@ -18,12 +18,20 @@ export function createPuzzle(
   sourceWord: string,
   dictionary: Dictionary,
   commonPool: WordSource,
+  rarePool: WordSource,
 ): Puzzle {
   const validationWords = new Set(dictionary.formableWords(sourceWord));
   // The source word is in ENABLE and formable from itself, so it is guaranteed
   // to be present; assert nothing, just rely on the formable set.
   const commonWords = new Set(
     commonPool.formableWords(sourceWord).filter((w) => validationWords.has(w)),
+  );
+  // Rare words are valid (in ENABLE) but below the SCOWL-70 threshold, so they
+  // are a subset of the validation set and never overlap the common pool.
+  const rareWords = new Set(
+    rarePool
+      .formableWords(sourceWord)
+      .filter((w) => validationWords.has(w) && !commonWords.has(w)),
   );
 
   return {
@@ -32,5 +40,6 @@ export function createPuzzle(
     validationWords,
     commonWords,
     commonTotal: totalScore(commonWords),
+    rareWords,
   };
 }

@@ -176,10 +176,22 @@ function reduce(state: State, action: Action): State {
       const tier = computeTier(foundSet, state.puzzle);
       const justRevealed = result.isSourceWord && !state.sourceRevealed;
 
+      const points = `${result.score} ${result.score === 1 ? 'point' : 'points'}`;
+      const kindNote = result.isRare
+        ? ', rare find'
+        : result.isCommon
+          ? ''
+          : ', bonus';
       const announceText = result.isSourceWord
         ? `Source word found: ${result.word}. ${tier.label}.`
-        : `${result.word}, ${result.score} ${result.score === 1 ? 'point' : 'points'}.` +
+        : `${result.word}, ${points}${kindNote}.` +
           (tier.index > state.tier.index ? ` ${tier.label}.` : '');
+
+      const messageText = result.isSourceWord
+        ? 'You found the source word.'
+        : result.isRare
+          ? `${result.word}, a rare find.`
+          : `${result.word}, ${result.isCommon ? 'in the set' : 'bonus'}.`;
 
       return {
         ...state,
@@ -190,12 +202,7 @@ function reduce(state: State, action: Action): State {
         totalScore: totalOf(tier),
         sourceRevealed: state.sourceRevealed || result.isSourceWord,
         revealOpen: justRevealed ? true : state.revealOpen,
-        message: {
-          text: result.isSourceWord
-            ? 'You found the source word.'
-            : `${result.word}, ${result.isCommon ? 'in the set' : 'bonus'}.`,
-          tone: 'success',
-        },
+        message: { text: messageText, tone: 'success' },
         announcement: bump(state.announcement, announceText),
       };
     }
@@ -255,7 +262,12 @@ export function useGame(
     const today = new Date();
     const idx = dayIndex(today);
     const word = dailySourceWord(data.sourceWords, today);
-    const puzzle = createPuzzle(word, data.dictionary, data.commonPool);
+    const puzzle = createPuzzle(
+      word,
+      data.dictionary,
+      data.commonPool,
+      data.rarePool,
+    );
     return {
       mode: 'daily',
       puzzle,
@@ -268,7 +280,12 @@ export function useGame(
   const makeEndless = useCallback((): NewPuzzlePayload => {
     const word =
       data.sourceWords[Math.floor(Math.random() * data.sourceWords.length)]!;
-    const puzzle = createPuzzle(word, data.dictionary, data.commonPool);
+    const puzzle = createPuzzle(
+      word,
+      data.dictionary,
+      data.commonPool,
+      data.rarePool,
+    );
     return {
       mode: 'endless',
       puzzle,
