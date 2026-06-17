@@ -26,6 +26,36 @@ describe('GameStorage day progress', () => {
   });
 });
 
+describe('GameStorage endless', () => {
+  let storage: GameStorage;
+  beforeEach(() => {
+    storage = new GameStorage(fakeStore());
+  });
+
+  it('is null until an endless game is saved', () => {
+    expect(storage.loadEndless()).toBeNull();
+  });
+
+  it('round-trips the endless puzzle identity and progress', () => {
+    storage.saveEndless('absolute', ['lob', 'bolt']);
+    expect(storage.loadEndless()).toEqual({
+      sourceWord: 'absolute',
+      found: ['lob', 'bolt'],
+    });
+  });
+
+  it('overwrites on a new puzzle and is independent of daily progress', () => {
+    storage.saveDayProgress(10, 'serenade', ['sea']);
+    storage.saveEndless('absolute', ['lob']);
+    storage.saveEndless('mountain', []); // New Puzzle: fresh word, empty list
+    expect(storage.loadEndless()).toEqual({
+      sourceWord: 'mountain',
+      found: [],
+    });
+    expect(storage.loadDayProgress(10, 'serenade')).toEqual(['sea']);
+  });
+});
+
 describe('GameStorage streak', () => {
   let storage: GameStorage;
   beforeEach(() => {

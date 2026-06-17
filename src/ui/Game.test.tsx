@@ -190,3 +190,62 @@ describe('Game', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('Game mode state retention', () => {
+  const glossary = () => screen.getByRole('region', { name: /words found/i });
+  const toDaily = () =>
+    fireEvent.click(screen.getByRole('button', { name: 'Daily' }));
+  const toEndless = () =>
+    fireEvent.click(screen.getByRole('button', { name: 'Endless' }));
+  const findWord = (w: string) => {
+    type(w);
+    fireEvent.keyDown(window, { key: 'Enter' });
+  };
+
+  it('retains the endless game and progress across a mode switch', () => {
+    renderGame();
+    toEndless();
+    findWord('sea'); // found in endless
+
+    toDaily();
+    expect(within(glossary()).queryByText('sea')).not.toBeInTheDocument();
+
+    toEndless();
+    expect(within(glossary()).getByText('sea')).toBeInTheDocument();
+  });
+
+  it('keeps daily and endless progress separate', () => {
+    renderGame();
+    findWord('near'); // found in daily (default mode)
+    toEndless();
+    expect(within(glossary()).queryByText('near')).not.toBeInTheDocument();
+
+    findWord('sea'); // found in endless
+    toDaily();
+    expect(within(glossary()).getByText('near')).toBeInTheDocument();
+    expect(within(glossary()).queryByText('sea')).not.toBeInTheDocument();
+  });
+
+  it('only New Puzzle changes the endless game', () => {
+    renderGame();
+    toEndless();
+    findWord('sea');
+    expect(within(glossary()).getByText('sea')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /new puzzle/i }));
+    expect(within(glossary()).queryByText('sea')).not.toBeInTheDocument();
+  });
+
+  it('preserves the endless game across a reload (remount)', () => {
+    const store = fakeStore();
+    const first = renderGame(store);
+    toEndless();
+    findWord('sea');
+    first.unmount();
+
+    // Fresh mount, same store: endless rehydrates with its progress.
+    renderGame(store);
+    toEndless();
+    expect(within(glossary()).getByText('sea')).toBeInTheDocument();
+  });
+});
