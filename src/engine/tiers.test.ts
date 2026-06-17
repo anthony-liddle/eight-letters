@@ -58,11 +58,21 @@ describe('computeTier', () => {
     expect(t.isTop).toBe(false);
   });
 
-  it('unlocks the top rung with the high bar plus the source word', () => {
-    const found = new Set(commonWords); // 100/100 and the source word
+  it('reaches Found the Word with the high bar plus the source word', () => {
+    // source (15) + 14 fives (70) = 85 of 100, with the source word.
+    const found = new Set([SOURCE, ...FIVES.slice(0, 14)]);
+    const t = computeTier(found, puzzle);
+    expect(t.fraction).toBeCloseTo(0.85);
+    expect(t.id).toBe('found-the-word');
+    expect(t.isTop).toBe(false); // no longer the top: Edition Complete is above
+    expect(t.next?.id).toBe('edition-complete');
+  });
+
+  it('crowns Edition Complete when every word in the set is found', () => {
+    const found = new Set(commonWords); // 100/100, source word included
     const t = computeTier(found, puzzle);
     expect(t.fraction).toBe(1);
-    expect(t.id).toBe('found-the-word');
+    expect(t.id).toBe('edition-complete');
     expect(t.isTop).toBe(true);
     expect(t.next).toBeNull();
   });

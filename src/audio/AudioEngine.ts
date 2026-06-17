@@ -8,6 +8,8 @@ export interface AudioEngine {
   playFound(length: number): void;
   /** The source word: the crown. A distinct, richer cue. */
   playSource(): void;
+  /** Edition Complete: every word in the set found. A step above the rest. */
+  playEdition(): void;
   /** A rejected guess. Gentle, never harsh. */
   playInvalid(): void;
   /** A small click for setting a tile. */
@@ -22,6 +24,7 @@ export class NullAudioEngine implements AudioEngine {
   muted = false;
   playFound(): void {}
   playSource(): void {}
+  playEdition(): void {}
   playInvalid(): void {}
   tick(): void {}
   setMuted(muted: boolean): void {
