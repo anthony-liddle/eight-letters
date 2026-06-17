@@ -41,10 +41,14 @@ interface Announcement {
   readonly seq: number;
 }
 
-interface State {
-  mode: Mode;
+/**
+ * One mode's game. Daily and Endless each hold their own slice, so switching
+ * modes is a view change and never disturbs the other.
+ */
+interface Slice {
   puzzle: Puzzle;
   sourceEntry: SourceEntry | undefined;
+  /** Calendar day for the daily; null for endless. */
   dayIndex: number | null;
   tiles: Tile[];
   rackOrder: number[];
@@ -59,16 +63,26 @@ interface State {
   announcement: Announcement;
 }
 
-interface NewPuzzlePayload {
-  mode: Mode;
+interface SlicePayload {
   puzzle: Puzzle;
   sourceEntry: SourceEntry | undefined;
   dayIndex: number | null;
   restoreFound: string[];
 }
 
+interface Game {
+  mode: Mode;
+  daily: Slice;
+  /** Null until Endless is first entered, then persists until New Puzzle. */
+  endless: Slice | null;
+}
+
+/** The flattened view the UI reads: the active slice plus the current mode. */
+export type GameView = Slice & { mode: Mode };
+
 type Action =
-  | { type: 'NEW_PUZZLE'; payload: NewPuzzlePayload }
+  | { type: 'SET_MODE'; mode: Mode }
+  | { type: 'SET_ENDLESS'; slice: Slice }
   | { type: 'ADD_TILE'; id: number }
   | { type: 'ADD_LETTER'; letter: string }
   | { type: 'REMOVE_LAST' }
@@ -91,24 +105,17 @@ function tilesFor(puzzle: Puzzle): Tile[] {
   return [...puzzle.letters].map((letter, id) => ({ id, letter }));
 }
 
-/** Replay a set of found words to derive tier and score (used when restoring). */
-function standingFor(found: readonly string[], puzzle: Puzzle): TierStanding {
-  return computeTier(new Set(found), puzzle);
-}
-
 function totalOf(tier: TierStanding): number {
   return tier.commonPoints + tier.bonusPoints;
 }
 
-function buildState(payload: NewPuzzlePayload, prev?: State): State {
+function buildSlice(payload: SlicePayload): Slice {
   const tiles = tilesFor(payload.puzzle);
   const found = payload.restoreFound.filter((w) =>
     payload.puzzle.validationWords.has(w),
   );
-  const tier = standingFor(found, payload.puzzle);
-  const sourceRevealed = found.includes(payload.puzzle.sourceWord);
+  const tier = computeTier(new Set(found), payload.puzzle);
   return {
-    mode: payload.mode,
     puzzle: payload.puzzle,
     sourceEntry: payload.sourceEntry,
     dayIndex: payload.dayIndex,
@@ -119,103 +126,15 @@ function buildState(payload: NewPuzzlePayload, prev?: State): State {
     foundSet: new Set(found),
     tier,
     totalScore: totalOf(tier),
-    sourceRevealed,
+    sourceRevealed: found.includes(payload.puzzle.sourceWord),
     revealOpen: false,
-    message: prev?.message ?? null,
-    announcement: prev?.announcement ?? { text: '', seq: 0 },
+    message: null,
+    announcement: { text: '', seq: 0 },
   };
 }
 
-function letterOf(state: State, id: number): string {
-  return state.tiles[id]?.letter ?? '';
-}
-
-function reduce(state: State, action: Action): State {
-  switch (action.type) {
-    case 'NEW_PUZZLE':
-      return buildState(action.payload, state);
-
-    case 'ADD_TILE':
-      if (state.composing.includes(action.id)) return state;
-      return { ...state, composing: [...state.composing, action.id] };
-
-    case 'ADD_LETTER': {
-      // Select the first unused rack tile bearing this letter.
-      const id = state.rackOrder.find(
-        (tileId) =>
-          letterOf(state, tileId) === action.letter &&
-          !state.composing.includes(tileId),
-      );
-      if (id === undefined) return state;
-      return { ...state, composing: [...state.composing, id] };
-    }
-
-    case 'REMOVE_LAST':
-      return { ...state, composing: state.composing.slice(0, -1) };
-
-    case 'CLEAR':
-      return { ...state, composing: [] };
-
-    case 'SHUFFLE':
-      return { ...state, rackOrder: shuffled(state.rackOrder) };
-
-    case 'SUBMIT_RESULT': {
-      const { result } = action;
-      if (result.kind !== 'valid') {
-        const text = messageForRejection(result);
-        return {
-          ...state,
-          composing: [],
-          message: { text, tone: 'error' },
-          announcement: bump(state.announcement, text),
-        };
-      }
-
-      const found = [...state.found, result.word];
-      const foundSet = new Set(found);
-      const tier = computeTier(foundSet, state.puzzle);
-      const justRevealed = result.isSourceWord && !state.sourceRevealed;
-
-      const points = `${result.score} ${result.score === 1 ? 'point' : 'points'}`;
-      const kindNote = result.isRare
-        ? ', rare find'
-        : result.isCommon
-          ? ''
-          : ', bonus';
-      const announceText = result.isSourceWord
-        ? `Source word found: ${result.word}. ${tier.label}.`
-        : `${result.word}, ${points}${kindNote}.` +
-          (tier.index > state.tier.index ? ` ${tier.label}.` : '');
-
-      const messageText = result.isSourceWord
-        ? 'You found the source word.'
-        : result.isRare
-          ? `${result.word}, a rare find.`
-          : `${result.word}, ${result.isCommon ? 'in the set' : 'bonus'}.`;
-
-      return {
-        ...state,
-        composing: [],
-        found,
-        foundSet,
-        tier,
-        totalScore: totalOf(tier),
-        sourceRevealed: state.sourceRevealed || result.isSourceWord,
-        revealOpen: justRevealed ? true : state.revealOpen,
-        message: { text: messageText, tone: 'success' },
-        announcement: bump(state.announcement, announceText),
-      };
-    }
-
-    case 'OPEN_REVEAL':
-      return { ...state, revealOpen: true };
-
-    case 'CLOSE_REVEAL':
-      return { ...state, revealOpen: false };
-
-    default:
-      return state;
-  }
+function letterOf(slice: Slice, id: number): string {
+  return slice.tiles[id]?.letter ?? '';
 }
 
 function bump(prev: Announcement, text: string): Announcement {
@@ -235,8 +154,115 @@ function messageForRejection(
   }
 }
 
+/** Gameplay actions, applied to whichever slice is active. */
+function reduceSlice(slice: Slice, action: Action): Slice {
+  switch (action.type) {
+    case 'ADD_TILE':
+      if (slice.composing.includes(action.id)) return slice;
+      return { ...slice, composing: [...slice.composing, action.id] };
+
+    case 'ADD_LETTER': {
+      const id = slice.rackOrder.find(
+        (tileId) =>
+          letterOf(slice, tileId) === action.letter &&
+          !slice.composing.includes(tileId),
+      );
+      if (id === undefined) return slice;
+      return { ...slice, composing: [...slice.composing, id] };
+    }
+
+    case 'REMOVE_LAST':
+      return { ...slice, composing: slice.composing.slice(0, -1) };
+
+    case 'CLEAR':
+      return { ...slice, composing: [] };
+
+    case 'SHUFFLE':
+      return { ...slice, rackOrder: shuffled(slice.rackOrder) };
+
+    case 'SUBMIT_RESULT': {
+      const { result } = action;
+      if (result.kind !== 'valid') {
+        const text = messageForRejection(result);
+        return {
+          ...slice,
+          composing: [],
+          message: { text, tone: 'error' },
+          announcement: bump(slice.announcement, text),
+        };
+      }
+
+      const found = [...slice.found, result.word];
+      const foundSet = new Set(found);
+      const tier = computeTier(foundSet, slice.puzzle);
+      const justRevealed = result.isSourceWord && !slice.sourceRevealed;
+
+      const points = `${result.score} ${result.score === 1 ? 'point' : 'points'}`;
+      const kindNote = result.isRare
+        ? ', rare find'
+        : result.isCommon
+          ? ''
+          : ', bonus';
+      const announceText = result.isSourceWord
+        ? `Source word found: ${result.word}. ${tier.label}.`
+        : `${result.word}, ${points}${kindNote}.` +
+          (tier.index > slice.tier.index ? ` ${tier.label}.` : '');
+
+      const messageText = result.isSourceWord
+        ? 'You found the source word.'
+        : result.isRare
+          ? `${result.word}, a rare find.`
+          : `${result.word}, ${result.isCommon ? 'in the set' : 'bonus'}.`;
+
+      return {
+        ...slice,
+        composing: [],
+        found,
+        foundSet,
+        tier,
+        totalScore: totalOf(tier),
+        sourceRevealed: slice.sourceRevealed || result.isSourceWord,
+        revealOpen: justRevealed ? true : slice.revealOpen,
+        message: { text: messageText, tone: 'success' },
+        announcement: bump(slice.announcement, announceText),
+      };
+    }
+
+    case 'OPEN_REVEAL':
+      return { ...slice, revealOpen: true };
+
+    case 'CLOSE_REVEAL':
+      return { ...slice, revealOpen: false };
+
+    default:
+      return slice;
+  }
+}
+
+function reduce(game: Game, action: Action): Game {
+  switch (action.type) {
+    // The toggle is a view change only: it never regenerates either puzzle.
+    case 'SET_MODE':
+      return game.mode === action.mode ? game : { ...game, mode: action.mode };
+
+    // First entry into Endless, and New Puzzle, both replace only this slice.
+    case 'SET_ENDLESS':
+      return { ...game, endless: action.slice };
+
+    default: {
+      if (game.mode === 'endless') {
+        if (!game.endless) return game;
+        const next = reduceSlice(game.endless, action);
+        return next === game.endless ? game : { ...game, endless: next };
+      }
+      const next = reduceSlice(game.daily, action);
+      return next === game.daily ? game : { ...game, daily: next };
+    }
+  }
+}
+
 export interface GameApi {
-  state: State;
+  state: GameView;
   composedWord: string;
   addTile: (id: number) => void;
   addLetter: (letter: string) => void;
@@ -258,86 +284,98 @@ export function useGame(
   audio: AudioEngine,
   storage: GameStorage = new GameStorage(),
 ): GameApi {
-  const makeDaily = useCallback((): NewPuzzlePayload => {
+  const makeDailyPayload = useCallback((): SlicePayload => {
     const today = new Date();
     const idx = dayIndex(today);
     const word = dailySourceWord(data.sourceWords, today);
-    const puzzle = createPuzzle(
-      word,
-      data.dictionary,
-      data.commonPool,
-      data.rarePool,
-    );
     return {
-      mode: 'daily',
-      puzzle,
+      puzzle: createPuzzle(
+        word,
+        data.dictionary,
+        data.commonPool,
+        data.rarePool,
+      ),
       sourceEntry: data.sourceEntry(word),
       dayIndex: idx,
       restoreFound: storage.loadDayProgress(idx, word),
     };
   }, [data, storage]);
 
-  const makeEndless = useCallback((): NewPuzzlePayload => {
-    const word =
-      data.sourceWords[Math.floor(Math.random() * data.sourceWords.length)]!;
-    const puzzle = createPuzzle(
-      word,
-      data.dictionary,
-      data.commonPool,
-      data.rarePool,
-    );
-    return {
-      mode: 'endless',
-      puzzle,
+  const endlessPayload = useCallback(
+    (word: string, restoreFound: string[]): SlicePayload => ({
+      puzzle: createPuzzle(
+        word,
+        data.dictionary,
+        data.commonPool,
+        data.rarePool,
+      ),
       sourceEntry: data.sourceEntry(word),
       dayIndex: null,
-      restoreFound: [],
-    };
-  }, [data]);
+      restoreFound,
+    }),
+    [data],
+  );
 
-  const [state, dispatch] = useReducer(reduce, undefined, () =>
-    buildState(makeDaily()),
+  const freshEndlessSlice = useCallback((): Slice => {
+    const word =
+      data.sourceWords[Math.floor(Math.random() * data.sourceWords.length)]!;
+    return buildSlice(endlessPayload(word, []));
+  }, [data, endlessPayload]);
+
+  const [game, dispatch] = useReducer(reduce, undefined, (): Game => {
+    const stored = storage.loadEndless();
+    // Only rehydrate a stored word the data still knows, so the reveal works.
+    const endless =
+      stored && data.sourceEntry(stored.sourceWord)
+        ? buildSlice(endlessPayload(stored.sourceWord, stored.found))
+        : null;
+    return { mode: 'daily', daily: buildSlice(makeDailyPayload()), endless };
+  });
+
+  const active =
+    game.mode === 'endless' && game.endless ? game.endless : game.daily;
+
+  const view = useMemo<GameView>(
+    () => ({ mode: game.mode, ...active }),
+    [game.mode, active],
   );
 
   const composedWord = useMemo(
-    () => state.composing.map((id) => state.tiles[id]?.letter ?? '').join(''),
-    [state.composing, state.tiles],
+    () => active.composing.map((id) => active.tiles[id]?.letter ?? '').join(''),
+    [active.composing, active.tiles],
   );
 
-  // Persist daily progress whenever the found list changes.
+  // Persist daily progress whenever the daily found list changes.
   useEffect(() => {
-    if (state.mode === 'daily' && state.dayIndex !== null) {
-      storage.saveDayProgress(
-        state.dayIndex,
-        state.puzzle.sourceWord,
-        state.found,
-      );
+    const d = game.daily;
+    if (d.dayIndex !== null) {
+      storage.saveDayProgress(d.dayIndex, d.puzzle.sourceWord, d.found);
     }
-  }, [
-    state.found,
-    state.mode,
-    state.dayIndex,
-    state.puzzle.sourceWord,
-    storage,
-  ]);
+  }, [game.daily, storage]);
 
-  // Record the streak once a daily reaches the streak tier.
+  // Persist the endless game (identity plus progress) whenever it changes.
+  useEffect(() => {
+    const e = game.endless;
+    if (e) storage.saveEndless(e.puzzle.sourceWord, e.found);
+  }, [game.endless, storage]);
+
+  // Record the streak once the daily reaches the streak tier.
   const streakRecorded = useRef(false);
   useEffect(() => {
+    const d = game.daily;
     if (
-      state.mode === 'daily' &&
-      state.dayIndex !== null &&
-      state.tier.index >= STREAK_TIER_INDEX &&
+      d.dayIndex !== null &&
+      d.tier.index >= STREAK_TIER_INDEX &&
       !streakRecorded.current
     ) {
       streakRecorded.current = true;
-      storage.recordDailyCleared(state.dayIndex);
+      storage.recordDailyCleared(d.dayIndex);
     }
-  }, [state.mode, state.dayIndex, state.tier.index, storage]);
+  }, [game.daily, storage]);
 
   const submit = useCallback(() => {
     const word = normalizeGuess(composedWord);
-    const result = validateGuess(word, state.puzzle, state.foundSet);
+    const result = validateGuess(word, active.puzzle, active.foundSet);
     dispatch({ type: 'SUBMIT_RESULT', result });
     if (result.kind === 'valid') {
       if (result.isSourceWord) audio.playSource();
@@ -345,22 +383,22 @@ export function useGame(
     } else {
       audio.playInvalid();
     }
-  }, [composedWord, state.puzzle, state.foundSet, audio]);
+  }, [composedWord, active.puzzle, active.foundSet, audio]);
 
   const setMode = useCallback(
     (mode: Mode) => {
-      streakRecorded.current = false;
-      dispatch({
-        type: 'NEW_PUZZLE',
-        payload: mode === 'daily' ? makeDaily() : makeEndless(),
-      });
+      // Generate Endless on first entry only; never regenerate on a switch.
+      if (mode === 'endless' && game.endless === null) {
+        dispatch({ type: 'SET_ENDLESS', slice: freshEndlessSlice() });
+      }
+      dispatch({ type: 'SET_MODE', mode });
     },
-    [makeDaily, makeEndless],
+    [game.endless, freshEndlessSlice],
   );
 
   const newEndless = useCallback(() => {
-    dispatch({ type: 'NEW_PUZZLE', payload: makeEndless() });
-  }, [makeEndless]);
+    dispatch({ type: 'SET_ENDLESS', slice: freshEndlessSlice() });
+  }, [freshEndlessSlice]);
 
   const [muted, setMuted] = useState(audio.muted);
   const toggleMute = useCallback(() => {
@@ -386,7 +424,7 @@ export function useGame(
   );
 
   return {
-    state,
+    state: view,
     composedWord,
     addTile,
     addLetter,
@@ -400,6 +438,6 @@ export function useGame(
     closeReveal: useCallback(() => dispatch({ type: 'CLOSE_REVEAL' }), []),
     toggleMute,
     muted,
-    streak: state.dayIndex !== null ? storage.currentStreak(state.dayIndex) : 0,
+    streak: storage.currentStreak(game.daily.dayIndex ?? 0),
   };
 }

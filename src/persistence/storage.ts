@@ -18,10 +18,17 @@ interface StreakState {
   lastClearedDayIndex: number | null;
 }
 
+/** The in-progress Endless game: enough to rehydrate the exact puzzle. */
+interface EndlessState {
+  sourceWord: string;
+  found: string[];
+}
+
 interface PersistedState {
   version: 1;
   days: Record<number, DayProgress>;
   streak: StreakState;
+  endless: EndlessState | null;
 }
 
 const STORAGE_KEY = 'eight-letters/v1';
@@ -32,6 +39,7 @@ function emptyState(): PersistedState {
     version: 1,
     days: {},
     streak: { count: 0, lastClearedDayIndex: null },
+    endless: null,
   };
 }
 
@@ -120,5 +128,21 @@ export class GameStorage {
     const { count, lastClearedDayIndex } = this.read().streak;
     if (lastClearedDayIndex === null) return 0;
     return lastClearedDayIndex >= todayIndex - 1 ? count : 0;
+  }
+
+  /** The in-progress Endless game, or null if none has been started. */
+  loadEndless(): EndlessState | null {
+    return this.read().endless;
+  }
+
+  /**
+   * Persist the Endless game by its source word and found list. Enough to
+   * rehydrate the exact puzzle and progress on reload. Pressing New Puzzle
+   * overwrites this with a fresh source word and an empty list.
+   */
+  saveEndless(sourceWord: string, found: readonly string[]): void {
+    const state = this.read();
+    state.endless = { sourceWord, found: [...found] };
+    this.write(state);
   }
 }
