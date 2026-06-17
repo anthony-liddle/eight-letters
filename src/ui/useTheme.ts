@@ -1,33 +1,40 @@
-import { useCallback, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 export type Theme = 'letterpress' | 'cute';
 
 const STORAGE_KEY = 'e8-theme';
 
-/** The theme the no-flash head script already applied to the document root. */
-function currentTheme(): Theme {
+/**
+ * The document root is the single source of truth for the theme: an inline head
+ * script sets it before paint (no flash). This is a tiny external store over it
+ * so every consumer (toolbar, colophon, ...) stays in sync when it changes.
+ */
+const listeners = new Set<() => void>();
+
+function readTheme(): Theme {
   return document.documentElement.dataset.theme === 'cute'
     ? 'cute'
     : 'letterpress';
 }
 
-/**
- * The active theme and a setter that updates the document root and persists the
- * choice. The root attribute is the single source of truth: an inline head
- * script sets it before paint (no flash), and this keeps it in sync.
- */
+function setTheme(next: Theme): void {
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem(STORAGE_KEY, next);
+  } catch {
+    // Storage blocked; the choice simply will not persist this session.
+  }
+  listeners.forEach((notify) => notify());
+}
+
+function subscribe(notify: () => void): () => void {
+  listeners.add(notify);
+  return () => listeners.delete(notify);
+}
+
+const serverSnapshot = (): Theme => 'letterpress';
+
 export function useTheme(): [Theme, (theme: Theme) => void] {
-  const [theme, setThemeState] = useState<Theme>(currentTheme);
-
-  const setTheme = useCallback((next: Theme) => {
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // Storage blocked; the choice simply will not persist this session.
-    }
-    setThemeState(next);
-  }, []);
-
+  const theme = useSyncExternalStore(subscribe, readTheme, serverSnapshot);
   return [theme, setTheme];
 }

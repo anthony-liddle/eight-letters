@@ -235,6 +235,63 @@ button {
   }
 }
 
+/* Edition Complete (cute only): one springy, foot-anchored hop. */
+.dino--celebrate {
+  transform-origin: bottom center;
+  animation: dino-hop 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+}
+@keyframes dino-hop {
+  0% {
+    transform: translateY(0) scaleX(1) scaleY(1) rotate(0);
+  }
+  8% {
+    transform: translateY(0) scaleX(1.06) scaleY(0.9) rotate(0);
+  }
+  30% {
+    transform: translateY(-16px) scaleX(0.96) scaleY(1.08) rotate(-3deg);
+  }
+  48% {
+    transform: translateY(0) scaleX(1.06) scaleY(0.92) rotate(0);
+  }
+  66% {
+    transform: translateY(-8px) scaleX(0.98) scaleY(1.04) rotate(3deg);
+  }
+  82% {
+    transform: translateY(0) scaleX(1.04) scaleY(0.96) rotate(-1.5deg);
+  }
+  100% {
+    transform: translateY(0) scaleX(1) scaleY(1) rotate(0);
+  }
+}
+.deco--dino-spark {
+  right: 1.4rem;
+  top: 1.6rem;
+  color: var(--rare);
+  font-size: 16px;
+  opacity: 0;
+}
+.deco--dino-spark.is-celebrating {
+  animation: dino-spark 1s ease 1;
+}
+@keyframes dino-spark {
+  0%,
+  15% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  32% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  55% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .loading,
 .error {
   min-height: 70vh;
@@ -870,8 +927,18 @@ button {
   content: '\2726';
   color: var(--rare);
 }
+/* A small drawn peach (body, leaf, cleft), consistent with the motif art, in
+   place of the colour emoji. */
+[data-theme='cute'] .mark--source {
+  width: 1.05em;
+  height: 1.05em;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Cpath%20d='M50%2015c4-7%2013-8%2017-4-2%206-8%208-13%207z'%20fill='%238FD3B6'/%3E%3Cpath%20d='M50%2019c19%200%2032%2015%2032%2033%200%2021-15%2035-32%2035S18%2072%2018%2052c0-18%2013-33%2032-33z'%20fill='%23FFB27A'/%3E%3Cpath%20d='M50%2021c-3%208-3%2021%200%2031'%20stroke='%23E8924E'%20stroke-width='2.5'%20fill='none'%20stroke-linecap='round'%20opacity='0.6'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
 [data-theme='cute'] .mark--source::before {
-  content: '\1F351'; /* peach */
+  content: none; /* drawn peach above, not the emoji */
 }
 
 .found__word--rare {
@@ -1086,6 +1153,25 @@ button {
     opacity: 1;
     transform: translate(-50%, 0);
   }
+}
+
+/* ---- Cute overlays: soft surface panels, no double rule, no hard outline --- */
+[data-theme='cute'] .reveal,
+[data-theme='cute'] .edition {
+  border: 1.5px solid var(--tile-edge);
+  box-shadow:
+    0 12px 0 var(--surface-shadow),
+    0 22px 48px rgba(255, 140, 120, 0.3);
+}
+[data-theme='cute'] .edition {
+  border-top: 1.5px solid var(--tile-edge); /* drop the classic double rule */
+}
+/* Overlay buttons follow the cute button system: pink pills, no double outline. */
+[data-theme='cute'] .reveal__close,
+[data-theme='cute'] .edition__close {
+  border: 1.5px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 @keyframes fade {

@@ -24,7 +24,7 @@ export function Game({ data, audio, storage }: Props) {
 
   return (
     <div className="app">
-      <Decorations />
+      <Decorations celebrate={state.editionOpen} />
       <Masthead />
       <Toolbar game={game} />
 
@@ -217,12 +217,15 @@ function Controls({ game }: { game: GameApi }) {
 }
 
 function Colophon() {
+  const [theme] = useTheme();
+  const fonts =
+    theme === 'cute' ? 'Fredoka and Nunito' : 'Fraunces and Spectral';
   return (
     <footer className="colophon">
       Validation by ENABLE, public domain. Common words from SCOWL. Definitions
       and etymologies from Wiktionary, CC BY-SA 4.0.
       <br />
-      Set in Fraunces and Spectral.
+      Set in {fonts}.
     </footer>
   );
 }
