@@ -15,13 +15,25 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "data:build": "tsx scripts/build-data.ts",
-    "icons:build": "tsx scripts/build-icons.ts"
+    "icons:build": "tsx scripts/build-icons.ts",
+    "prepare": "husky || true"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,css,html}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
     "@eslint/js": "^10.0.1",
     "@resvg/resvg-js": "^2.6.2",
     "@testing-library/jest-dom": "^6.6.3",
@@ -36,7 +48,9 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
     "jsdom": "^25.0.1",
+    "lint-staged": "^17.0.7",
     "opentype.js": "^2.0.0",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.4.2",
