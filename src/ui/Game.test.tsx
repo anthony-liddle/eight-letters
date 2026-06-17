@@ -105,7 +105,7 @@ describe('Game', () => {
 
     const li = findWord('sane');
     expect(li).toHaveClass('found__word--bonus');
-    expect(li.textContent).toContain('†'); // dagger mark, not a hollow shape
+    expect(li.querySelector('.mark--bonus')).toBeTruthy(); // dagger mark, filled
     expect(li.textContent).toMatch(/\+\d/); // inline points
     expect(li.textContent).not.toMatch(/rare/i);
     expect(screen.getByText(/1 bonus found/i)).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('Game', () => {
 
     const li = findWord('sneer');
     expect(li).toHaveClass('found__word--rare');
-    expect(li.textContent).toContain('◆'); // diamond mark
+    expect(li.querySelector('.mark--rare')).toBeTruthy(); // diamond mark
     expect(li.textContent).toMatch(/\+\d/);
     expect(li.textContent).toMatch(/rare find/i);
     expect(screen.getByText(/1 rare found/i)).toBeInTheDocument();

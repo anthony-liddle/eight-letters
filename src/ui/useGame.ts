@@ -93,7 +93,8 @@ type Action =
   | { type: 'SUBMIT_RESULT'; result: GuessResult }
   | { type: 'OPEN_REVEAL' }
   | { type: 'CLOSE_REVEAL' }
-  | { type: 'CLOSE_EDITION' };
+  | { type: 'CLOSE_EDITION' }
+  | { type: 'PREVIEW'; kind: string };
 
 function shuffled<T>(items: readonly T[]): T[] {
   const out = [...items];
@@ -247,6 +248,43 @@ function reduceSlice(slice: Slice, action: Action): Slice {
     case 'CLOSE_EDITION':
       return { ...slice, editionOpen: false };
 
+    // Dev only: jump straight to a big moment. Gated at the dispatch site so it
+    // is unreachable in a production build.
+    case 'PREVIEW': {
+      const source = slice.puzzle.sourceWord;
+      const all = [...slice.puzzle.commonWords];
+      const nonSource = all.filter((w) => w !== source);
+      let words = all;
+      let revealOpen = false;
+      let editionOpen = false;
+      if (action.kind === 'source-reveal') {
+        words = [source];
+        revealOpen = true;
+      } else if (action.kind === 'tier-up') {
+        // A high rung, not complete: source plus all but one other word.
+        words = [
+          source,
+          ...nonSource.slice(0, Math.max(0, nonSource.length - 1)),
+        ];
+      } else if (action.kind === 'edition-complete') {
+        editionOpen = true;
+      } else {
+        return slice;
+      }
+      const foundSet = new Set(words);
+      const tier = computeTier(foundSet, slice.puzzle);
+      return {
+        ...slice,
+        found: words,
+        foundSet,
+        tier,
+        totalScore: totalOf(tier),
+        sourceRevealed: words.includes(source),
+        revealOpen,
+        editionOpen,
+      };
+    }
+
     default:
       return slice;
   }
@@ -386,6 +424,15 @@ export function useGame(
       storage.recordDailyCleared(d.dayIndex);
     }
   }, [game.daily, storage]);
+
+  // Dev only: force-fire a big moment via ?preview=edition-complete |
+  // source-reveal | tier-up. The guard is compiled out of production builds, so
+  // the trigger is unreachable in the shipped UI.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const kind = new URLSearchParams(window.location.search).get('preview');
+    if (kind) dispatch({ type: 'PREVIEW', kind });
+  }, []);
 
   const submit = useCallback(() => {
     const word = normalizeGuess(composedWord);
