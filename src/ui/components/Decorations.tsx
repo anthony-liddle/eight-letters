@@ -3,7 +3,7 @@
  * Original art (no trademarked characters). Hidden in Letterpress via CSS, and
  * aria-hidden so they are never announced. Purely decorative, behind the play.
  */
-export function Decorations() {
+export function Decorations({ celebrate = false }: { celebrate?: boolean }) {
   return (
     <div className="decorations" aria-hidden="true">
       <svg className="deco deco--peach1" viewBox="0 0 100 100">
@@ -30,7 +30,10 @@ export function Decorations() {
         />
       </svg>
 
-      <svg className="deco deco--dino" viewBox="0 0 120 110">
+      <svg
+        className={'deco deco--dino' + (celebrate ? ' dino--celebrate' : '')}
+        viewBox="0 0 120 110"
+      >
         <path
           d="M30 96c0-30 16-54 44-54 22 0 34 14 34 30 0 8-4 14-10 18 4 6 2 10 2 10H40s-10-2-10-4z"
           fill="#9BDCC0"
@@ -68,6 +71,13 @@ export function Decorations() {
       <span className="spark spark--1">✦</span>
       <span className="spark spark--2">✦</span>
       <span className="spark spark--3">✦</span>
+      <span
+        className={
+          'deco deco--dino-spark' + (celebrate ? ' is-celebrating' : '')
+        }
+      >
+        ✦
+      </span>
     </div>
   );
 }
