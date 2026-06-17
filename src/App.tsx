@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { loadGameData, type GameData } from '@/data/gameData.ts';
 import { WebAudioEngine } from '@/audio/WebAudioEngine.ts';
 import { GameStorage } from '@/persistence/storage.ts';
@@ -37,6 +38,7 @@ export function App() {
         <div className="loading">
           <p>Setting the type.</p>
         </div>
+        <Analytics />
       </div>
     );
   }
@@ -48,9 +50,15 @@ export function App() {
           <p>The word lists did not load. Reload to try again.</p>
           <p className="found__empty">{load.message}</p>
         </div>
+        <Analytics />
       </div>
     );
   }
 
-  return <Game data={load.data} audio={audio} storage={storage} />;
+  return (
+    <>
+      <Game data={load.data} audio={audio} storage={storage} />
+      <Analytics />
+    </>
+  );
 }
