@@ -71,13 +71,6 @@ function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
     });
 }
 
-const MARK: Record<Category, string> = {
-  set: '',
-  bonus: '†',
-  rare: '◆',
-  source: '',
-};
-
 export function FoundList({ puzzle, found }: Props) {
   const groups = useMemo(() => buildGroups(puzzle, found), [puzzle, found]);
 
@@ -103,11 +96,13 @@ export function FoundList({ puzzle, found }: Props) {
         <p className="found__tallies">
           {bonusFound > 0 && (
             <span className="found__tally found__tally--bonus">
+              <span className="mark mark--bonus" aria-hidden="true" />
               {bonusFound} bonus found
             </span>
           )}
           {rareFound > 0 && (
             <span className="found__tally found__tally--rare">
+              <span className="mark mark--rare" aria-hidden="true" />
               {rareFound} rare found
             </span>
           )}
@@ -133,9 +128,10 @@ export function FoundList({ puzzle, found }: Props) {
                   key={w.word}
                   className={`found__word found__word--${w.category}`}
                 >
-                  <span className="found__mark" aria-hidden="true">
-                    {MARK[w.category]}
-                  </span>
+                  <span
+                    className={`mark mark--${w.category}`}
+                    aria-hidden="true"
+                  />
                   {w.word}
                   {(w.category === 'bonus' || w.category === 'rare') && (
                     <span className="found__points">+{w.score}</span>
@@ -152,13 +148,13 @@ export function FoundList({ puzzle, found }: Props) {
 
       <div className="legend" aria-hidden="true">
         <span>
-          <i className="legend-mark legend-mark--set" /> in the set
+          <span className="mark mark--set" /> in the set
         </span>
         <span>
-          <i className="legend-mark legend-mark--bonus">†</i> bonus
+          <span className="mark mark--bonus" /> bonus
         </span>
         <span>
-          <i className="legend-mark legend-mark--rare">◆</i> rare
+          <span className="mark mark--rare" /> rare
         </span>
       </div>
     </section>
