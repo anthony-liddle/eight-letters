@@ -24,6 +24,11 @@ export interface Puzzle {
   readonly commonWords: ReadonlySet<string>;
   /** Scored total of the common set. The denominator for tier percentage. */
   readonly commonTotal: number;
+  /**
+   * Formable validation words that are rare: valid in ENABLE but absent from
+   * SCOWL size 70 and below. A discovery, not a miss. Disjoint from commonWords.
+   */
+  readonly rareWords: ReadonlySet<string>;
 }
 
 /** Why a guess was accepted or rejected. */
@@ -34,6 +39,8 @@ export type GuessResult =
       readonly score: number;
       /** In the common pool (counts toward the tier numerator). */
       readonly isCommon: boolean;
+      /** A rare find: valid but absent from SCOWL size 70 and below. */
+      readonly isRare: boolean;
       /** Exactly the day's source word (triggers the reveal, gates the top tier). */
       readonly isSourceWord: boolean;
     }

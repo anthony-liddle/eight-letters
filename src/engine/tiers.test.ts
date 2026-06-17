@@ -18,6 +18,7 @@ const puzzle: Puzzle = {
   validationWords: commonWords,
   commonWords,
   commonTotal: totalScore(commonWords),
+  rareWords: new Set(),
 };
 
 describe('computeTier', () => {

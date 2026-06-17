@@ -20,7 +20,9 @@ const ENABLE = [
   'dean',
   'erase',
 ];
-const COMMON = ['serenade', 'sea', 'near', 'sane', 'eased', 'dean', 'erase'];
+// set/in-the-set words; 'sane' is bonus (valid, not common, not rare);
+// 'sneer' is the rare find (in the rare pool, not common).
+const COMMON = ['serenade', 'sea', 'near', 'dean', 'eased', 'erase'];
 
 const ENTRY: SourceEntry = {
   word: 'serenade',
@@ -32,6 +34,7 @@ function fakeData(): GameData {
   return {
     dictionary: createListDictionary(ENABLE),
     commonPool: createListWordSource(COMMON),
+    rarePool: createListWordSource(['sneer']), // the rare find on this rack
     sourceWords: ['serenade'], // single-word pool: the daily is always serenade
     sourceEntry: (w) => (w === 'serenade' ? ENTRY : undefined),
   };
@@ -88,6 +91,51 @@ describe('Game', () => {
     expect(screen.getAllByText(/not in the word list/i).length).toBeGreaterThan(
       0,
     );
+  });
+
+  function findWord(text: string): HTMLElement {
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    return within(glossary).getByText(text).closest('li') as HTMLElement;
+  }
+
+  it('renders a bonus word filled with a dagger and inline points', () => {
+    renderGame();
+    type('sane'); // valid, not common, not rare
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    const li = findWord('sane');
+    expect(li).toHaveClass('found__word--bonus');
+    expect(li.textContent).toContain('†'); // dagger mark, not a hollow shape
+    expect(li.textContent).toMatch(/\+\d/); // inline points
+    expect(li.textContent).not.toMatch(/rare/i);
+    expect(screen.getByText(/1 bonus found/i)).toBeInTheDocument();
+  });
+
+  it('renders a rare word with a diamond and a rare-find note', () => {
+    renderGame();
+    type('sneer'); // in the rare pool
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    const li = findWord('sneer');
+    expect(li).toHaveClass('found__word--rare');
+    expect(li.textContent).toContain('◆'); // diamond mark
+    expect(li.textContent).toMatch(/\+\d/);
+    expect(li.textContent).toMatch(/rare find/i);
+    expect(screen.getByText(/1 rare found/i)).toBeInTheDocument();
+  });
+
+  it('tallies bonus and rare without ever showing a denominator', () => {
+    renderGame();
+    type('sane'); // bonus
+    fireEvent.keyDown(window, { key: 'Enter' });
+    type('sneer'); // rare
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    expect(screen.getByText(/1 bonus found/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 rare found/i)).toBeInTheDocument();
+    // The set keeps "X of Y"; bonus and rare never do.
+    expect(screen.queryByText(/bonus.*of/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/rare.*of/i)).not.toBeInTheDocument();
   });
 
   it('updates the tier as common words are found', () => {

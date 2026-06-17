@@ -8,6 +8,8 @@ export interface GameData {
   readonly dictionary: Dictionary;
   /** SCOWL-small common pool, the tier denominator source. */
   readonly commonPool: WordSource;
+  /** Rare pool: ENABLE words below the SCOWL-70 threshold, for rare finds. */
+  readonly rarePool: WordSource;
   /** Ordered source-word pool (drives daily and endless selection). */
   readonly sourceWords: readonly string[];
   /** Lookup from source word to its definition and etymology. */
@@ -37,14 +39,16 @@ function parseWordList(text: string): string[] {
  * remote service) without touching the engine or UI.
  */
 export async function loadGameData(): Promise<GameData> {
-  const [enableText, commonText, sourceJson] = await Promise.all([
+  const [enableText, commonText, rareText, sourceJson] = await Promise.all([
     fetchText('enable.txt'),
     fetchText('common-pool.txt'),
+    fetchText('rare.txt'),
     fetchText('source-pool.json'),
   ]);
 
   const dictionary = createListDictionary(parseWordList(enableText));
   const commonPool = createListWordSource(parseWordList(commonText));
+  const rarePool = createListWordSource(parseWordList(rareText));
 
   const entries = JSON.parse(sourceJson) as SourceEntry[];
   const byWord = new Map(entries.map((e) => [e.word, e]));
@@ -53,6 +57,7 @@ export async function loadGameData(): Promise<GameData> {
   return {
     dictionary,
     commonPool,
+    rarePool,
     sourceWords,
     sourceEntry: (word) => byWord.get(word),
   };

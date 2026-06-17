@@ -24,6 +24,13 @@ export const ENABLE_URL =
 export const COMMON_POOL_SIZES = [10, 20] as const;
 
 /**
+ * SCOWL bands that define the rarity threshold. A found word is "rare" when it
+ * is valid in ENABLE but absent from SCOWL size 70 and below, so these are every
+ * band up to and including 70. The baked rare set is ENABLE minus this union.
+ */
+export const RARE_THRESHOLD_SIZES = [10, 20, 35, 40, 50, 55, 60, 70] as const;
+
+/**
  * Tighter band for the source-word candidate pool. Source words are the answer
  * Bea should recognize, so we keep them to the two most common bands (about
  * 1,600 eight-letter words). This is the lever to pull if answers feel too
