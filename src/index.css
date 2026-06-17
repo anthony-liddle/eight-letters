@@ -1,0 +1,767 @@
+/* =========================================================================
+   8 Letters in Search of a Word
+   Aesthetic: a printer's composing room. Ink on warm paper, metal type sorts,
+   a second-colour (oxblood) pass reserved for the crown. Lo-fi, quiet, typeset.
+   ========================================================================= */
+
+:root {
+  /* The letterpress palette. Paper and ink, a rubricated red for everyday
+     chrome, and an amber second colour reserved only for the source word. */
+  --paper: #f1eee6;
+  --paper-deep: #e7e1d2;
+  --paper-edge: #d9d1bd;
+  --ink: #211d17;
+  --ink-soft: #5a5446; /* secondary text, ~6.3:1 on paper (AA) */
+  --ink-faint: #6e6755; /* muted labels, ~4.9:1 on paper (AA) */
+  --accent: #9d2b25; /* rubricated red: the everyday accent and chrome */
+  --accent-deep: #7a1f1b;
+  --crown: #b5872f; /* amber: the source-word colour, the crown, and nothing else */
+  --crown-deep: #8a661f;
+  --error: #9d2b25; /* red: rejected guesses */
+  --error-deep: #7a1f1b;
+  --rule: #cabf9f;
+  --tile-face: #f7f3e8;
+  --tile-edge: #c9bd9c;
+  --good: #4b6a52; /* sage: a quiet mark for "in the set" */
+
+  --control-h: 2.25rem; /* shared height for every header control */
+  --shadow-press: 0 1px 0 #fffaf0 inset, 0 2px 3px rgba(33, 28, 21, 0.22);
+  --radius: 3px;
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Spectral', Georgia, serif;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background-color: var(--paper);
+  /* Layered paper grain: subtle fibres plus a vignette toward the edges. */
+  background-image:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(255, 250, 240, 0.5),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 50% 120%,
+      rgba(33, 28, 21, 0.08),
+      transparent 55%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Accessible focus: an ink outline, never removed. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- App shell ---------------------------------------------------------- */
+
+.app {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem) 4rem;
+}
+
+.loading,
+.error {
+  min-height: 70vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+.loading p,
+.error p {
+  font-style: italic;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+
+/* ---- Masthead ----------------------------------------------------------- */
+
+.masthead {
+  text-align: center;
+  border-top: 3px double var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding: 0.5rem 0 0.9rem;
+  margin-bottom: 1.5rem;
+}
+.masthead__kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0.3rem 0 0.2rem;
+  padding-left: 0.42em;
+}
+.masthead__title {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: clamp(1.7rem, 5.5vw, 3.1rem);
+  line-height: 1;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.masthead__title em {
+  font-style: italic;
+  color: var(--accent);
+}
+.masthead__rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  color: var(--ink-faint);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.masthead__rule::before,
+.masthead__rule::after {
+  content: '';
+  height: 1px;
+  width: clamp(1.5rem, 8vw, 5rem);
+  background: var(--rule);
+}
+
+/* ---- Toolbar ------------------------------------------------------------ */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  /* Pin the row so whatever fills the right slot (Streak pill in Daily, the
+     taller New Puzzle button in Endless) never changes its height. */
+  min-height: var(--control-h);
+}
+.modes {
+  display: inline-flex;
+  height: var(--control-h);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.modes button {
+  background: transparent;
+  border: 0;
+  padding: 0 0.95rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.modes button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.toolbar__right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-h);
+  gap: 0.4rem;
+  border: 1px solid var(--rule);
+  background: var(--paper-deep);
+  border-radius: var(--radius);
+  padding: 0 0.7rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+.chip strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+/* A header button (New Puzzle) sized to match the other header controls. */
+.btn.btn--header {
+  flex: 0 0 auto;
+  height: var(--control-h);
+  padding: 0 0.95rem;
+}
+.iconbtn {
+  border: 1px solid var(--rule);
+  background: var(--paper-deep);
+  border-radius: var(--radius);
+  width: var(--control-h);
+  height: var(--control-h);
+  display: grid;
+  place-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.iconbtn--accent[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.iconbtn--crown {
+  border-color: var(--crown);
+  color: var(--crown-deep);
+}
+/* Narrow widths: stack into two fixed rows (toggle, then controls) for both
+   modes, so the wider New Puzzle cluster can never wrap differently from the
+   Streak pill and shift everything below. Same structure, same height. */
+@media (max-width: 480px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+  .modes button {
+    flex: 1;
+    justify-content: center;
+  }
+  .toolbar__right {
+    justify-content: flex-end;
+  }
+}
+
+/* ---- Layout ------------------------------------------------------------- */
+
+.board {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+}
+@media (min-width: 820px) {
+  .board {
+    grid-template-columns: 1.4fr 1fr;
+    align-items: start;
+  }
+}
+
+.play {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  /* Height follows content; the tier bar sits directly under the composing
+     area rather than being pushed to the bottom of a stretched column. */
+  align-self: start;
+}
+
+/* ---- Composing stick ---------------------------------------------------- */
+
+.stick {
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: linear-gradient(var(--paper-deep), var(--paper));
+  min-height: 4.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.6rem;
+  position: relative;
+  box-shadow: 0 1px 0 #fffaf0 inset;
+}
+.stick__empty {
+  color: var(--ink-faint);
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+.stick__slot {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  text-transform: lowercase;
+  color: var(--ink);
+  min-width: 0.7em;
+  text-align: center;
+}
+.stick[data-tone='error'] {
+  animation: nudge 0.32s var(--ease);
+  border-color: var(--error);
+}
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* ---- Type case (the rack) ----------------------------------------------- */
+
+.case {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(0.5rem, 2vw, 0.85rem);
+}
+@media (min-width: 540px) {
+  .case {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+.sort {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--tile-edge);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, var(--tile-face), var(--paper-deep));
+  box-shadow: var(--shadow-press);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 6vw, 2.3rem);
+  color: var(--ink);
+  text-transform: lowercase;
+  display: grid;
+  place-content: center;
+  transition:
+    transform 0.12s var(--ease),
+    box-shadow 0.12s var(--ease),
+    opacity 0.12s var(--ease);
+  user-select: none;
+}
+.sort::after {
+  /* the foot of the type sort: a printed shoulder line */
+  content: '';
+  position: absolute;
+  inset: auto 14% 9% 14%;
+  height: 2px;
+  background: rgba(33, 28, 21, 0.16);
+  border-radius: 2px;
+}
+.sort:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.sort:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    0 1px 0 #fffaf0 inset,
+    0 1px 1px rgba(33, 28, 21, 0.2);
+}
+.sort:disabled {
+  /* lifted out of the case and into the stick: an empty slot remains */
+  opacity: 0.32;
+  box-shadow: none;
+  background: var(--paper-deep);
+  cursor: default;
+  color: var(--ink-faint);
+}
+
+/* ---- Controls ----------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.btn {
+  flex: 1 1 auto;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-deep);
+  padding: 0.65rem 1rem;
+  font-size: 0.84rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition:
+    background 0.12s var(--ease),
+    color 0.12s var(--ease);
+}
+.btn:hover:not(:disabled) {
+  background: var(--paper-edge);
+}
+.btn--icon {
+  flex: 0 0 auto;
+}
+/* The primary action. Active once a word of valid length is composed: it
+   carries the accent and reads unmistakably live. */
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
+  flex-basis: 40%;
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+/* Disabled controls: muted by colour rather than a dim veil, so the label stays
+   perceivable (and the primary's empty state reads clearly as not-yet-active). */
+.btn:disabled {
+  background: var(--paper-deep);
+  color: var(--ink-faint);
+  border-color: var(--rule);
+  cursor: default;
+}
+
+.message {
+  /* Reserve one line so feedback never shifts the tier bar, but carry no <p>
+     margins, which were doubling into a dead band above the tier. */
+  margin: 0;
+  min-height: 1.4rem;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+.message[data-tone='error'] {
+  color: var(--error-deep);
+}
+.message[data-tone='success'] {
+  color: var(--good);
+}
+
+/* ---- Tier meter --------------------------------------------------------- */
+
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.tier__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.tier__label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+.tier__label.is-top {
+  color: var(--crown-deep);
+}
+.tier__score {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+.tier__track {
+  position: relative;
+  height: 12px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper-deep);
+  overflow: hidden;
+}
+.tier__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--ink),
+    var(--ink) 6px,
+    #2f291f 6px,
+    #2f291f 12px
+  );
+  transition: width 0.5s var(--ease);
+}
+.tier__fill.is-top {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--crown),
+    var(--crown) 6px,
+    var(--crown-deep) 6px,
+    var(--crown-deep) 12px
+  );
+}
+.tier__ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.66rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+.tier__next {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* ---- Found list (the glossary) ------------------------------------------ */
+
+.found {
+  border-top: 1px solid var(--ink);
+  padding-top: 0.9rem;
+}
+.found__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+}
+.found__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin: 0;
+}
+.found__count {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+.found__group {
+  margin-bottom: 1rem;
+}
+.found__grouphead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px dotted var(--rule);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.45rem;
+}
+.found__words {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+}
+.found__word {
+  font-size: 1.02rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  text-transform: lowercase;
+}
+/* mark, not colour alone: a filled square for the common set, hollow for bonus */
+.found__word::before {
+  content: '';
+  width: 0.5em;
+  height: 0.5em;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 1px;
+}
+.found__word--common::before {
+  background: var(--good);
+  border-color: var(--good);
+}
+.found__word--source {
+  color: var(--crown-deep);
+  font-weight: 600;
+  font-style: italic;
+}
+.found__word--source::before {
+  background: var(--crown);
+  border-color: var(--crown);
+  transform: rotate(45deg);
+}
+.found__empty {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+.legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  margin-top: 0.5rem;
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.legend i {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 1px;
+  display: inline-block;
+}
+.legend .is-common {
+  background: var(--good);
+}
+.legend .is-bonus {
+  border: 1.5px solid var(--ink-soft);
+}
+
+/* ---- Reveal (the crown) ------------------------------------------------- */
+
+.reveal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(33, 28, 21, 0.55);
+  display: grid;
+  place-content: center;
+  padding: 1.2rem;
+  z-index: 20;
+  animation: fade 0.3s var(--ease);
+}
+.reveal {
+  position: relative;
+  max-width: 30rem;
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--crown);
+  border-radius: var(--radius);
+  box-shadow:
+    0 0 0 6px var(--paper),
+    0 0 0 7px var(--crown-deep),
+    0 24px 50px rgba(0, 0, 0, 0.4);
+  padding: clamp(1.5rem, 4vw, 2.4rem);
+  text-align: center;
+  animation: press 0.45s var(--ease);
+}
+.reveal__kicker {
+  font-size: 0.7rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--crown-deep);
+  margin: 0 0 0.6rem;
+  padding-left: 0.4em;
+}
+.reveal__word {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.2rem, 9vw, 3.4rem);
+  color: var(--crown-deep);
+  text-transform: lowercase;
+  line-height: 1;
+  margin: 0 0 0.2rem;
+  letter-spacing: -0.01em;
+}
+.reveal__sep {
+  width: 3rem;
+  height: 2px;
+  background: var(--crown);
+  margin: 1rem auto;
+}
+.reveal__section {
+  text-align: left;
+  margin: 0.9rem 0;
+}
+.reveal__h {
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 0.3rem;
+}
+.reveal__def,
+.reveal__ety {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.reveal__ety {
+  font-style: italic;
+}
+.reveal__close {
+  margin-top: 1.4rem;
+  /* Deep amber so the paper label clears AA (4.8:1); bright amber would not. */
+  border: 1px solid var(--crown-deep);
+  background: var(--crown-deep);
+  color: var(--paper);
+  border-radius: var(--radius);
+  padding: 0.55rem 1.4rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.reveal__attribution {
+  margin-top: 1rem;
+  font-size: 0.64rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes press {
+  from {
+    opacity: 0;
+    transform: scale(1.08) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Staggered settle of the type sorts on first load. */
+.sort {
+  animation: settle 0.4s var(--ease) both;
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+footer.colophon {
+  margin-top: 3rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+}
+footer.colophon a {
+  color: var(--ink-soft);
+}
+
+/* ---- Reduced motion ----------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,30 @@
+/**
+ * The audio interface the game plays against. v1 ships a small Web Audio synth;
+ * the real Soundscape engine will implement this same shape later, so nothing
+ * above this line needs to change when it does.
+ */
+export interface AudioEngine {
+  /** A found word lands. Pitch rises with length. */
+  playFound(length: number): void;
+  /** The source word: the crown. A distinct, richer cue. */
+  playSource(): void;
+  /** A rejected guess. Gentle, never harsh. */
+  playInvalid(): void;
+  /** A small click for setting a tile. */
+  tick(): void;
+  /** Mute or unmute all cues. */
+  setMuted(muted: boolean): void;
+  readonly muted: boolean;
+}
+
+/** A silent engine for tests and for environments without Web Audio. */
+export class NullAudioEngine implements AudioEngine {
+  muted = false;
+  playFound(): void {}
+  playSource(): void {}
+  playInvalid(): void {}
+  tick(): void {}
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+  }
+}
