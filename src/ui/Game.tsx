@@ -3,10 +3,12 @@ import type { GameData } from '@/data/gameData.ts';
 import type { AudioEngine } from '@/audio/AudioEngine.ts';
 import { GameStorage } from '@/persistence/storage.ts';
 import { useGame, type GameApi } from './useGame.ts';
+import { useTheme } from './useTheme.ts';
 import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
 import { Reveal } from './components/Reveal.tsx';
 import { EditionCard } from './components/EditionCard.tsx';
+import { Decorations } from './components/Decorations.tsx';
 
 interface Props {
   data: GameData;
@@ -22,6 +24,7 @@ export function Game({ data, audio, storage }: Props) {
 
   return (
     <div className="app">
+      <Decorations />
       <Masthead />
       <Toolbar game={game} />
 
@@ -77,6 +80,7 @@ function Masthead() {
 
 function Toolbar({ game }: { game: GameApi }) {
   const { state } = game;
+  const [theme, setTheme] = useTheme();
   return (
     <div className="toolbar">
       <div className="modes" role="group" aria-label="Mode">
@@ -95,6 +99,20 @@ function Toolbar({ game }: { game: GameApi }) {
       </div>
 
       <div className="toolbar__right">
+        <div className="modes" role="group" aria-label="Theme">
+          <button
+            aria-pressed={theme === 'letterpress'}
+            onClick={() => setTheme('letterpress')}
+          >
+            Classic
+          </button>
+          <button
+            aria-pressed={theme === 'cute'}
+            onClick={() => setTheme('cute')}
+          >
+            Cute
+          </button>
+        </div>
         {state.mode === 'daily' ? (
           <span className="chip" title="Days cleared in a row">
             Streak <strong>{game.streak}</strong>

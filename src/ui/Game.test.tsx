@@ -189,6 +189,22 @@ describe('Game', () => {
       screen.getByRole('button', { name: /unmute sound/i }),
     ).toBeInTheDocument();
   });
+
+  it('switches and persists the theme', () => {
+    renderGame();
+    fireEvent.click(screen.getByRole('button', { name: 'Cute' }));
+    expect(document.documentElement.dataset.theme).toBe('cute');
+    expect(localStorage.getItem('e8-theme')).toBe('cute');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Classic' }));
+    expect(document.documentElement.dataset.theme).toBe('letterpress');
+  });
+
+  it('lists the source word in the glossary legend', () => {
+    renderGame();
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    expect(within(glossary).getByText('source word')).toBeInTheDocument();
+  });
 });
 
 describe('Game mode state retention', () => {

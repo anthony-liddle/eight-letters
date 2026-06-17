@@ -5,8 +5,16 @@
    ========================================================================= */
 
 :root {
-  /* The letterpress palette. Paper and ink, a rubricated red for everyday
-     chrome, and an amber second colour reserved only for the source word. */
+  /* Theme-agnostic. Every colour and font lives in a theme block below, so a
+     new theme is just one more block, no component changes. */
+  --control-h: 2.25rem;
+  --radius: 3px;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ===================== Letterpress (the default) ===================== */
+:root,
+[data-theme='letterpress'] {
   --paper: #f1eee6;
   --paper-deep: #e7e1d2;
   --paper-edge: #d9d1bd;
@@ -15,24 +23,97 @@
   --ink-faint: #6e6755; /* muted labels, ~4.9:1 on paper (AA) */
   --accent: #9d2b25; /* rubricated red: the everyday accent and chrome */
   --accent-deep: #7a1f1b;
-  --crown: #b5872f; /* amber: the source-word colour, the crown, and nothing else */
+  --crown: #b5872f; /* amber: the source-word colour */
   --crown-deep: #8a661f;
-  --error: #9d2b25; /* red: rejected guesses */
+  --error: #9d2b25;
   --error-deep: #7a1f1b;
   --rule: #cabf9f;
   --tile-face: #f7f3e8;
   --tile-edge: #c9bd9c;
-  --good: #4b6a52; /* sage: a quiet mark for "in the set" */
-  --discovery: #3e5c7e; /* cool ink-blue: bonus and rare finds only, ~6:1 on paper */
-
-  --control-h: 2.25rem; /* shared height for every header control */
-  --shadow-press: 0 1px 0 #fffaf0 inset, 0 2px 3px rgba(33, 28, 21, 0.22);
-  --radius: 3px;
+  --good: #4b6a52; /* the "in the set" mark */
+  --discovery: #3e5c7e; /* bonus and rare find text */
+  --bonus: #3e5c7e; /* bonus mark */
+  --rare: #3e5c7e; /* rare mark */
 
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-body: 'Spectral', Georgia, serif;
+  --tile-radius: 3px;
+  --card-radius: 3px;
+  --btn-radius: 3px;
+  --tile-letter-weight: 600;
+  --bounce: var(--ease);
+  --surface-highlight: #fffaf0;
 
-  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  /* The paper sheet: warm grain, fibres, and a soft vignette. */
+  --page-bg:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(255, 250, 240, 0.5),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 50% 120%,
+      rgba(33, 28, 21, 0.08),
+      transparent 55%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  --tile-bg: linear-gradient(160deg, var(--tile-face), var(--paper-deep));
+  --tile-shadow:
+    0 1px 0 var(--surface-highlight) inset, 0 2px 3px rgba(33, 28, 21, 0.22);
+  --tile-foot: rgba(33, 28, 21, 0.16);
+  --well-bg: var(--paper-deep);
+  --well-shadow:
+    inset 0 2px 4px rgba(33, 28, 21, 0.13),
+    inset 0 -1px 0 var(--surface-highlight);
+  --fill: repeating-linear-gradient(
+    45deg,
+    var(--ink),
+    var(--ink) 6px,
+    #2f291f 6px,
+    #2f291f 12px
+  );
+}
+
+/* ============================ Cute ================================== */
+[data-theme='cute'] {
+  --paper: #fff4ee;
+  --paper-deep: #ffffff; /* white surfaces */
+  --paper-edge: #ffd9c8;
+  --ink: #6b4636; /* warm cocoa, 6.9:1 on the bg (AA) */
+  --ink-soft: #6f5142; /* 6:1 (AA) */
+  --ink-faint: #7e5c4a; /* 5:1 (AA) */
+  --accent: #c42e60; /* candy pink, deepened to clear AA as text and on buttons */
+  --accent-deep: #a8264f;
+  --crown: #ff9e58; /* peach (mark) */
+  --crown-deep: #a0531a; /* peach source-word text, 4.7:1 (AA) */
+  --error: #c42e60;
+  --error-deep: #a8264f;
+  --rule: #ffe0d2;
+  --tile-face: #ffffff;
+  --tile-edge: #ffd9c8;
+  --good: #c42e60; /* the "in the set" heart */
+  --discovery: #6e4fb8; /* bonus and rare find text, 5:1 (AA) */
+  --bonus: #b5781a; /* amber star mark */
+  --rare: #7e5bc8; /* purple sparkle mark */
+
+  --font-display: 'Fredoka', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Nunito', ui-rounded, system-ui, sans-serif;
+  --tile-radius: 18px;
+  --card-radius: 22px;
+  --btn-radius: 999px;
+  --radius: 999px; /* pill buttons in cute */
+  --tile-letter-weight: 600;
+  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --surface-highlight: transparent;
+  --surface-shadow: #ffc9b4;
+
+  --page-bg: linear-gradient(180deg, #fff4ee, #ffe6dc);
+  --tile-bg: var(--paper-deep);
+  --tile-shadow: 0 5px 0 var(--surface-shadow);
+  --tile-foot: transparent;
+  --well-bg: var(--paper-deep);
+  --well-shadow: 0 6px 0 var(--rule);
+  --fill: var(--accent);
 }
 
 * {
@@ -49,21 +130,10 @@ body {
   font-family: var(--font-body);
   color: var(--ink);
   background-color: var(--paper);
-  /* Layered paper grain: subtle fibres plus a vignette toward the edges. */
-  background-image:
-    radial-gradient(
-      ellipse at 50% 0%,
-      rgba(255, 250, 240, 0.5),
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse at 50% 120%,
-      rgba(33, 28, 21, 0.08),
-      transparent 55%
-    ),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-image: var(--page-bg);
   background-attachment: fixed;
   min-height: 100vh;
+  overflow-x: hidden; /* keep cute motifs from nudging out a scrollbar */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -98,6 +168,71 @@ button {
   max-width: 1040px;
   margin: 0 auto;
   padding: clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem) 4rem;
+  position: relative;
+}
+/* Content sits above the decorative motifs. */
+.app > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Cute decorations (peaches, dino, sparkles) ------------------------- */
+.decorations {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+[data-theme='letterpress'] .decorations {
+  display: none;
+}
+.deco {
+  position: absolute;
+}
+.deco--dino {
+  right: 0;
+  top: 3rem;
+  width: 74px;
+  animation: float 4s ease-in-out infinite;
+}
+.deco--peach1 {
+  left: -8px;
+  top: 9rem;
+  width: 44px;
+  transform: rotate(-12deg);
+}
+.deco--peach2 {
+  right: 30%;
+  bottom: 5rem;
+  width: 32px;
+  transform: rotate(8deg);
+}
+.spark {
+  position: absolute;
+  color: var(--rare);
+  font-size: 14px;
+  opacity: 0.7;
+}
+.spark--1 {
+  left: 8%;
+  top: 5rem;
+}
+.spark--2 {
+  right: 8%;
+  top: 14rem;
+}
+.spark--3 {
+  left: 40%;
+  bottom: 3rem;
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
 }
 
 .loading,
@@ -123,6 +258,11 @@ button {
   border-bottom: 1px solid var(--ink);
   padding: 0.5rem 0 0.9rem;
   margin-bottom: 1.5rem;
+}
+/* Cute keeps a single soft rule instead of the pressed double border. */
+[data-theme='cute'] .masthead {
+  border-top: none;
+  border-bottom: 1px solid var(--rule);
 }
 .masthead__kicker {
   font-size: 0.72rem;
@@ -195,6 +335,10 @@ button {
 .modes button[aria-pressed='true'] {
   background: var(--ink);
   color: var(--paper);
+}
+[data-theme='cute'] .modes button[aria-pressed='true'] {
+  background: var(--accent);
+  color: #fff;
 }
 .toolbar__right {
   display: inline-flex;
@@ -286,21 +430,23 @@ button {
 /* ---- Composing stick ---------------------------------------------------- */
 
 .stick {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  /* A recessed galley the type sits in: a quiet inset shadow, not a glossy
-     top-to-bottom gradient. Sized snugly for a single line of type. */
-  background: var(--paper-deep);
-  min-height: 3.6rem;
+  border: 1px solid var(--tile-edge);
+  border-radius: var(--card-radius);
+  background: var(--well-bg);
+  /* One FIXED height, sized for the filled state, with both the placeholder and
+     the set letters centred. Empty and filled are identical, so the rack never
+     shifts when the first letter lands. */
+  height: 4rem;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  padding: 0.55rem;
+  padding: 0 0.6rem;
   position: relative;
-  box-shadow:
-    inset 0 2px 4px rgba(33, 28, 21, 0.13),
-    inset 0 -1px 0 #fffaf0;
+  box-shadow: var(--well-shadow);
+}
+[data-theme='letterpress'] .stick {
+  border-color: var(--ink);
 }
 .stick__empty {
   color: var(--ink-faint);
@@ -350,29 +496,29 @@ button {
   position: relative;
   aspect-ratio: 3 / 4;
   border: 1px solid var(--tile-edge);
-  border-radius: var(--radius);
-  background: linear-gradient(160deg, var(--tile-face), var(--paper-deep));
-  box-shadow: var(--shadow-press);
+  border-radius: var(--tile-radius);
+  background: var(--tile-bg);
+  box-shadow: var(--tile-shadow);
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: var(--tile-letter-weight);
   font-size: clamp(1.5rem, 6vw, 2.3rem);
   color: var(--ink);
   text-transform: lowercase;
   display: grid;
   place-content: center;
   transition:
-    transform 0.12s var(--ease),
+    transform 0.12s var(--bounce),
     box-shadow 0.12s var(--ease),
     opacity 0.12s var(--ease);
   user-select: none;
 }
 .sort::after {
-  /* the foot of the type sort: a printed shoulder line */
+  /* the foot of the type sort: a printed shoulder line (letterpress only) */
   content: '';
   position: absolute;
   inset: auto 14% 9% 14%;
   height: 2px;
-  background: rgba(33, 28, 21, 0.16);
+  background: var(--tile-foot);
   border-radius: 2px;
 }
 .sort:hover:not(:disabled) {
@@ -381,8 +527,16 @@ button {
 .sort:active:not(:disabled) {
   transform: translateY(1px);
   box-shadow:
-    0 1px 0 #fffaf0 inset,
+    0 1px 0 var(--surface-highlight) inset,
     0 1px 1px rgba(33, 28, 21, 0.2);
+}
+/* Cute: a gentle wobble on hover and a squish on press. */
+[data-theme='cute'] .sort:hover:not(:disabled) {
+  transform: translateY(-3px) rotate(-2deg);
+}
+[data-theme='cute'] .sort:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--surface-shadow);
 }
 .sort:disabled {
   /* lifted out of the case and into the stick: an empty slot remains */
@@ -546,6 +700,16 @@ button {
     transform: translateX(100%);
   }
 }
+/* Cute fills are solid, not letterpress stripes. */
+[data-theme='cute'] .tier__fill {
+  background: var(--accent);
+}
+[data-theme='cute'] .tier__fill.is-crown {
+  background: var(--crown);
+}
+[data-theme='cute'] .tier__fill.is-edition {
+  background: var(--accent);
+}
 .tier__ticks {
   display: flex;
   justify-content: space-between;
@@ -629,18 +793,27 @@ button {
   background: var(--good);
   border-radius: 1px;
 }
-.mark--source,
 .mark--rare {
   width: 0.42em;
   height: 0.42em;
   border-radius: 1px;
-  transform: rotate(45deg);
+  background: var(--rare);
+  transform: rotate(45deg); /* diamond */
 }
 .mark--source {
+  width: 0.62em;
+  height: 0.5em;
   background: var(--crown);
-}
-.mark--rare {
-  background: var(--discovery);
+  /* a small crown silhouette: three peaks on a base */
+  clip-path: polygon(
+    0% 100%,
+    0% 36%,
+    22% 60%,
+    50% 18%,
+    78% 60%,
+    100% 36%,
+    100% 100%
+  );
 }
 .mark--bonus::before,
 .mark--bonus::after {
@@ -648,7 +821,7 @@ button {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--discovery);
+  background: var(--bonus);
   border-radius: 0.5px;
 }
 .mark--bonus::before {
@@ -660,6 +833,45 @@ button {
   top: 16%;
   width: 0.42em;
   height: 0.13em; /* the crossbar, near the top */
+}
+
+/* Cute marks are soft glyphs (heart, star, sparkle, peach), centred in the same
+   footprint so they share size and alignment with the letterpress shapes. */
+[data-theme='cute'] .mark {
+  width: 1em;
+  height: 1em;
+  background: none;
+  transform: none;
+  clip-path: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95em;
+  line-height: 1;
+}
+[data-theme='cute'] .mark--set::before {
+  content: '\2665';
+  color: var(--good);
+}
+[data-theme='cute'] .mark--bonus::before {
+  content: '\2605';
+  position: static;
+  inset: auto;
+  width: auto;
+  height: auto;
+  transform: none;
+  background: none;
+  color: var(--bonus);
+}
+[data-theme='cute'] .mark--bonus::after {
+  content: none;
+}
+[data-theme='cute'] .mark--rare::before {
+  content: '\2726';
+  color: var(--rare);
+}
+[data-theme='cute'] .mark--source::before {
+  content: '\1F351'; /* peach */
 }
 
 .found__word--rare {
@@ -736,7 +948,7 @@ button {
   width: 100%;
   background: var(--paper);
   border: 1px solid var(--crown);
-  border-radius: var(--radius);
+  border-radius: var(--card-radius);
   box-shadow:
     0 0 0 6px var(--paper),
     0 0 0 7px var(--crown-deep),
@@ -821,7 +1033,7 @@ button {
   background: var(--paper);
   border: 1px solid var(--ink);
   border-top: 4px double var(--ink);
-  border-radius: var(--radius);
+  border-radius: var(--card-radius);
   box-shadow: 0 12px 36px rgba(33, 28, 21, 0.35);
   padding: 1.2rem 1.5rem 1.4rem;
   text-align: center;

@@ -156,6 +156,9 @@ export function FoundList({ puzzle, found }: Props) {
         <span>
           <span className="mark mark--rare" /> rare
         </span>
+        <span>
+          <span className="mark mark--source" /> source word
+        </span>
       </div>
     </section>
   );
