@@ -79,6 +79,14 @@ export const TIERS: readonly TierDef[] = [
     threshold: 0.85,
     requiresSourceWord: true,
   },
+  {
+    // The crown above the crown: every word in the set found. Reaching 1.00
+    // means the source word is among them, so the gate is met automatically.
+    id: 'edition-complete',
+    label: 'Edition Complete',
+    threshold: 1,
+    requiresSourceWord: true,
+  },
 ];
 
 /**

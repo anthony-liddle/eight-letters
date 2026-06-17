@@ -59,6 +59,8 @@ interface Slice {
   totalScore: number;
   sourceRevealed: boolean;
   revealOpen: boolean;
+  /** The one-time Edition Complete card is showing. Transient, never persisted. */
+  editionOpen: boolean;
   message: Message | null;
   announcement: Announcement;
 }
@@ -90,7 +92,8 @@ type Action =
   | { type: 'SHUFFLE' }
   | { type: 'SUBMIT_RESULT'; result: GuessResult }
   | { type: 'OPEN_REVEAL' }
-  | { type: 'CLOSE_REVEAL' };
+  | { type: 'CLOSE_REVEAL' }
+  | { type: 'CLOSE_EDITION' };
 
 function shuffled<T>(items: readonly T[]): T[] {
   const out = [...items];
@@ -128,6 +131,8 @@ function buildSlice(payload: SlicePayload): Slice {
     totalScore: totalOf(tier),
     sourceRevealed: found.includes(payload.puzzle.sourceWord),
     revealOpen: false,
+    // Rehydrated games never reopen the card; it fires only on the live moment.
+    editionOpen: false,
     message: null,
     announcement: { text: '', seq: 0 },
   };
@@ -196,6 +201,8 @@ function reduceSlice(slice: Slice, action: Action): Slice {
       const foundSet = new Set(found);
       const tier = computeTier(foundSet, slice.puzzle);
       const justRevealed = result.isSourceWord && !slice.sourceRevealed;
+      // The set just reached 100 percent. Non-terminal: play continues.
+      const justComplete = slice.tier.fraction < 1 && tier.fraction >= 1;
 
       const points = `${result.score} ${result.score === 1 ? 'point' : 'points'}`;
       const kindNote = result.isRare
@@ -203,10 +210,12 @@ function reduceSlice(slice: Slice, action: Action): Slice {
         : result.isCommon
           ? ''
           : ', bonus';
-      const announceText = result.isSourceWord
-        ? `Source word found: ${result.word}. ${tier.label}.`
-        : `${result.word}, ${points}${kindNote}.` +
-          (tier.index > slice.tier.index ? ` ${tier.label}.` : '');
+      const base = result.isSourceWord
+        ? `Source word found: ${result.word}.`
+        : `${result.word}, ${points}${kindNote}.`;
+      const announceText = justComplete
+        ? `${base} Edition complete. Every word in the set found.`
+        : base + (tier.index > slice.tier.index ? ` ${tier.label}.` : '');
 
       const messageText = result.isSourceWord
         ? 'You found the source word.'
@@ -223,6 +232,7 @@ function reduceSlice(slice: Slice, action: Action): Slice {
         totalScore: totalOf(tier),
         sourceRevealed: slice.sourceRevealed || result.isSourceWord,
         revealOpen: justRevealed ? true : slice.revealOpen,
+        editionOpen: justComplete ? true : slice.editionOpen,
         message: { text: messageText, tone: 'success' },
         announcement: bump(slice.announcement, announceText),
       };
@@ -233,6 +243,9 @@ function reduceSlice(slice: Slice, action: Action): Slice {
 
     case 'CLOSE_REVEAL':
       return { ...slice, revealOpen: false };
+
+    case 'CLOSE_EDITION':
+      return { ...slice, editionOpen: false };
 
     default:
       return slice;
@@ -274,6 +287,7 @@ export interface GameApi {
   newEndless: () => void;
   openReveal: () => void;
   closeReveal: () => void;
+  closeEdition: () => void;
   toggleMute: () => void;
   muted: boolean;
   streak: number;
@@ -377,13 +391,19 @@ export function useGame(
     const word = normalizeGuess(composedWord);
     const result = validateGuess(word, active.puzzle, active.foundSet);
     dispatch({ type: 'SUBMIT_RESULT', result });
-    if (result.kind === 'valid') {
-      if (result.isSourceWord) audio.playSource();
-      else audio.playFound(result.word.length);
-    } else {
+    if (result.kind !== 'valid') {
       audio.playInvalid();
+      return;
     }
-  }, [composedWord, active.puzzle, active.foundSet, audio]);
+    // Did this find complete the set? If so, the grander cue takes over.
+    const wasComplete = active.tier.commonPoints >= active.puzzle.commonTotal;
+    const nowComplete =
+      active.tier.commonPoints + (result.isCommon ? result.score : 0) >=
+      active.puzzle.commonTotal;
+    if (!wasComplete && nowComplete) audio.playEdition();
+    else if (result.isSourceWord) audio.playSource();
+    else audio.playFound(result.word.length);
+  }, [composedWord, active.puzzle, active.tier, active.foundSet, audio]);
 
   const setMode = useCallback(
     (mode: Mode) => {
@@ -436,6 +456,7 @@ export function useGame(
     newEndless,
     openReveal: useCallback(() => dispatch({ type: 'OPEN_REVEAL' }), []),
     closeReveal: useCallback(() => dispatch({ type: 'CLOSE_REVEAL' }), []),
+    closeEdition: useCallback(() => dispatch({ type: 'CLOSE_EDITION' }), []),
     toggleMute,
     muted,
     streak: storage.currentStreak(game.daily.dayIndex ?? 0),

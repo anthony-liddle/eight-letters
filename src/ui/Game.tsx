@@ -6,6 +6,7 @@ import { useGame, type GameApi } from './useGame.ts';
 import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
 import { Reveal } from './components/Reveal.tsx';
+import { EditionCard } from './components/EditionCard.tsx';
 
 interface Props {
   data: GameData;
@@ -48,6 +49,8 @@ export function Game({ data, audio, storage }: Props) {
       <div className="visually-hidden" role="status" aria-live="polite">
         {state.announcement.text}
       </div>
+
+      {state.editionOpen && <EditionCard onClose={game.closeEdition} />}
 
       {state.revealOpen && (
         <Reveal

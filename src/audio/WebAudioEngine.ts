@@ -16,6 +16,10 @@ const FOUND_NOTES: readonly Hz[] = [
 /** The crown: a gentle rising arpeggio, brighter than any found cue. */
 const SOURCE_ARPEGGIO: readonly Hz[] = [523.25, 659.25, 783.99, 1046.5];
 
+/** Edition Complete: a fuller rising run that settles onto a sustained chord. */
+const EDITION_RUN: readonly Hz[] = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+const EDITION_CHORD: readonly Hz[] = [523.25, 659.25, 783.99]; // a C-major close
+
 const INVALID_NOTES: readonly Hz[] = [196.0, 174.61]; // a soft descending pair
 
 /**
@@ -89,6 +93,18 @@ export class WebAudioEngine implements AudioEngine {
     if (!this.ensureContext()) return;
     SOURCE_ARPEGGIO.forEach((freq, i) => {
       this.note(freq, i * 0.1, 0.5, 'triangle', 0.8);
+    });
+  }
+
+  playEdition(): void {
+    if (!this.ensureContext()) return;
+    // A step above the source cue: a longer run, then a held chord to close.
+    EDITION_RUN.forEach((freq, i) => {
+      this.note(freq, i * 0.1, 0.5, 'triangle', 0.85);
+    });
+    const chordAt = EDITION_RUN.length * 0.1;
+    EDITION_CHORD.forEach((freq) => {
+      this.note(freq, chordAt, 1.1, 'triangle', 0.7);
     });
   }
 

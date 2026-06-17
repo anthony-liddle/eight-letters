@@ -249,3 +249,62 @@ describe('Game mode state retention', () => {
     expect(within(glossary()).getByText('sea')).toBeInTheDocument();
   });
 });
+
+describe('Game edition complete', () => {
+  const enter = () => fireEvent.keyDown(window, { key: 'Enter' });
+  const findWord = (w: string) => {
+    type(w);
+    enter();
+  };
+  const editionCard = () =>
+    screen.queryByRole('region', { name: /edition complete/i });
+  // Every common word on this rack: finding all of them is 100% of the set.
+  const SET = ['sea', 'near', 'dean', 'eased', 'erase'];
+
+  function completeTheSet() {
+    findWord('serenade'); // the source word; dismiss its amber reveal first
+    fireEvent.click(screen.getByRole('button', { name: /back to the case/i }));
+    SET.slice(0, -1).forEach(findWord);
+    findWord(SET[SET.length - 1]!); // the last set word completes the edition
+  }
+
+  it('does not celebrate before the set is finished', () => {
+    renderGame();
+    findWord('serenade');
+    fireEvent.click(screen.getByRole('button', { name: /back to the case/i }));
+    findWord('sea');
+    expect(editionCard()).not.toBeInTheDocument();
+  });
+
+  it('fires the celebration once and does not end the game', () => {
+    renderGame();
+    completeTheSet();
+
+    // The card appears and the tier label holds Edition Complete.
+    expect(editionCard()).toBeInTheDocument();
+    const tier = screen.getByRole('region', { name: /completion/i });
+    expect(within(tier).getByText('Edition Complete')).toBeInTheDocument();
+
+    // Play continues: a bonus word can still be set.
+    findWord('sane');
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    expect(within(glossary).getByText('sane')).toBeInTheDocument();
+
+    // Dismiss, and it does not return (fires once).
+    fireEvent.click(screen.getByRole('button', { name: /keep going/i }));
+    expect(editionCard()).not.toBeInTheDocument();
+    findWord('sneer'); // another non-set find
+    expect(editionCard()).not.toBeInTheDocument();
+    // The label still holds the top rung.
+    const tierAfter = screen.getByRole('region', { name: /completion/i });
+    expect(within(tierAfter).getByText('Edition Complete')).toBeInTheDocument();
+  });
+
+  it('announces the completion for screen readers', () => {
+    renderGame();
+    completeTheSet();
+    expect(screen.getByRole('status').textContent).toMatch(
+      /edition complete\. every word in the set found/i,
+    );
+  });
+});

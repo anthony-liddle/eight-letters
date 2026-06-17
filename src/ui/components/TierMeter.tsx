@@ -7,10 +7,24 @@ interface Props {
 
 export function TierMeter({ tier, totalScore }: Props) {
   const pct = Math.round(tier.fraction * 100);
+  // Found the Word keeps the amber crown; Edition Complete is the ink-and-oxblood
+  // rung above it (no new colour). Everything else is plain ink.
+  const variant =
+    tier.id === 'found-the-word'
+      ? ' is-crown'
+      : tier.id === 'edition-complete'
+        ? ' is-edition'
+        : '';
+
   return (
     <section className="tier" aria-label="Completion">
       <div className="tier__head">
-        <span className={'tier__label' + (tier.isTop ? ' is-top' : '')}>
+        <span className={'tier__label' + variant}>
+          {tier.id === 'edition-complete' && (
+            <span className="tier__pressmark" aria-hidden="true">
+              ❧
+            </span>
+          )}
           {tier.label}
         </span>
         <span className="tier__score">
@@ -27,7 +41,7 @@ export function TierMeter({ tier, totalScore }: Props) {
         aria-valuetext={`${pct} percent of the set, ${tier.label}`}
       >
         <div
-          className={'tier__fill' + (tier.isTop ? ' is-top' : '')}
+          className={'tier__fill' + variant}
           style={{ width: `${Math.max(pct, tier.fraction > 0 ? 3 : 0)}%` }}
         />
       </div>
@@ -36,10 +50,10 @@ export function TierMeter({ tier, totalScore }: Props) {
         {tier.next ? (
           <span className="tier__next">
             Next: {tier.next.label} at {Math.round(tier.next.threshold * 100)}%
-            {tier.next.threshold >= 0.85 ? ', with the source word' : ''}
+            {tier.next.id === 'found-the-word' ? ', with the source word' : ''}
           </span>
         ) : (
-          <span className="tier__next">The top. You found the word.</span>
+          <span className="tier__next">Every word in the set.</span>
         )}
       </div>
     </section>

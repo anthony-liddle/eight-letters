@@ -470,8 +470,15 @@ button {
   font-weight: 600;
   font-size: 1.15rem;
 }
-.tier__label.is-top {
+.tier__label.is-crown {
   color: var(--crown-deep);
+}
+.tier__label.is-edition {
+  color: var(--accent); /* oxblood, not amber: completion is its own moment */
+}
+.tier__pressmark {
+  margin-right: 0.35em;
+  color: var(--accent);
 }
 .tier__score {
   font-size: 0.82rem;
@@ -498,7 +505,7 @@ button {
   );
   transition: width 0.5s var(--ease);
 }
-.tier__fill.is-top {
+.tier__fill.is-crown {
   background: repeating-linear-gradient(
     45deg,
     var(--crown),
@@ -506,6 +513,34 @@ button {
     var(--crown-deep) 6px,
     var(--crown-deep) 12px
   );
+}
+/* Edition Complete: ink and oxblood stripes, with a one-pass finishing sweep. */
+.tier__fill.is-edition {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--ink),
+    var(--ink) 6px,
+    var(--accent-deep) 6px,
+    var(--accent-deep) 12px
+  );
+}
+.tier__fill.is-edition::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 250, 240, 0.55),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: sweep 0.9s var(--ease) 1;
+}
+@keyframes sweep {
+  to {
+    transform: translateX(100%);
+  }
 }
 .tier__ticks {
   display: flex;
@@ -769,6 +804,74 @@ button {
   font-size: 0.64rem;
   color: var(--ink-faint);
   letter-spacing: 0.02em;
+}
+
+/* ---- Edition Complete (the win state) ----------------------------------- */
+/* A sibling to the reveal, but ink and oxblood, ornamental, and non-blocking:
+   no backdrop, fixed near the top, so the board below stays live. */
+.edition {
+  position: fixed;
+  top: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  width: min(26rem, calc(100vw - 2rem));
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-top: 4px double var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 36px rgba(33, 28, 21, 0.35);
+  padding: 1.2rem 1.5rem 1.4rem;
+  text-align: center;
+  animation: drop 0.5s var(--ease);
+}
+.edition__ornament {
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--accent);
+  margin: 0 0 0.2rem;
+}
+.edition__kicker {
+  font-size: 0.66rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 0.3rem;
+  padding-left: 0.34em;
+}
+.edition__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  color: var(--accent); /* oxblood, clearly not the amber reveal */
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.edition__line {
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0.4rem 0 0;
+}
+.edition__close {
+  margin-top: 1rem;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--radius);
+  padding: 0.5rem 1.3rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 @keyframes fade {
