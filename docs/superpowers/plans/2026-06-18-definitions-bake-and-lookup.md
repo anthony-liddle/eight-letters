@@ -1409,7 +1409,7 @@ Expected: all PASS, no network access during `test` or `build`. (`pnpm build` is
 - [ ] **Step 3: Confirm no em dashes anywhere in the new work**
 
 ```bash
-grep -rn "—" scripts src/data docs/superpowers
+grep -rn "$(printf '\u2014')" scripts src/data docs/superpowers
 ```
 
 Expected: no matches.
