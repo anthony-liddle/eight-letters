@@ -4,14 +4,6 @@
  * they live here as named constants rather than scattered literals.
  */
 
-/** SourceForge tarball for SCOWL. Public domain / permissive (see ATTRIBUTION.md). */
-export const SCOWL_TARBALL_URL =
-  'https://downloads.sourceforge.net/project/wordlist/SCOWL/2020.12.07/scowl-2020.12.07.tar.gz';
-
-/** ENABLE word list. Public domain. */
-export const ENABLE_URL =
-  'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt';
-
 /**
  * SCOWL "size" bands to include in the common pool (the tier denominator).
  * Smaller size = more common. Tightened to size 20 (bands 10, 20) after the

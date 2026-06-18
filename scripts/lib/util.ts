@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 export const REPO_ROOT = join(fileURLToPath(import.meta.url), '../../..');
 export const CACHE_DIR = join(REPO_ROOT, 'scripts', '.cache');
+export const DATA_RAW_DIR = join(REPO_ROOT, 'scripts', 'data-raw');
 export const ASSET_DIR = join(REPO_ROOT, 'public', 'data');
 
 export async function ensureDir(path: string): Promise<void> {
@@ -33,8 +34,9 @@ export async function writeAsset(
   name: string,
   contents: string,
 ): Promise<void> {
-  await ensureDir(ASSET_DIR);
-  await writeFile(join(ASSET_DIR, name), contents, 'utf8');
+  const full = join(ASSET_DIR, name);
+  await ensureDir(dirname(full));
+  await writeFile(full, contents, 'utf8');
 }
 
 /** Fetch with a few retries and a clear failure. Build-time only. */
