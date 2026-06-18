@@ -61,12 +61,18 @@ function decodeEntities(s: string): string {
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
 }
 
-interface RestDefinition {
+export interface RestDefinition {
   partOfSpeech?: string;
   definitions?: { definition?: string }[];
 }
 
-function extractDefinition(definitionJson: string | null): string | null {
+export interface FirstSense {
+  pos: string | null;
+  text: string;
+}
+
+/** The first usable English sense, cleaned to plain text. pos is lowercased. */
+export function firstSense(definitionJson: string | null): FirstSense | null {
   if (!definitionJson) return null;
   let json: Record<string, RestDefinition[]>;
   try {
@@ -81,12 +87,18 @@ function extractDefinition(definitionJson: string | null): string | null {
     if (!first?.definition) continue;
     const text = cleanText(first.definition);
     if (!text) continue;
-    const pos = sense.partOfSpeech
-      ? `${sense.partOfSpeech.toLowerCase()}. `
-      : '';
-    return `${pos}${text}`;
+    return { pos: sense.partOfSpeech?.toLowerCase() ?? null, text };
   }
   return null;
+}
+
+/** Source-pool definition string: "pos. text" or just text. Unchanged shape. */
+export function extractDefinition(
+  definitionJson: string | null,
+): string | null {
+  const sense = firstSense(definitionJson);
+  if (!sense) return null;
+  return sense.pos ? `${sense.pos}. ${sense.text}` : sense.text;
 }
 
 function extractEtymology(etymologyHtml: string | null): string | null {

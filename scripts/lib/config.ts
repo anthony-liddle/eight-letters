@@ -74,3 +74,6 @@ export const WIKTIONARY_CONCURRENCY = 4;
  * deliver it does not earn a place as an answer.
  */
 export const REQUIRE_ETYMOLOGY = true;
+
+/** Short gloss length cap for tappable definitions. Roughly one sentence. */
+export const DEFINITION_MAX_LENGTH = 140;
