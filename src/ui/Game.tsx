@@ -3,7 +3,7 @@ import type { GameData } from '@/data/gameData.ts';
 import type { AudioEngine } from '@/audio/AudioEngine.ts';
 import { GameStorage } from '@/persistence/storage.ts';
 import { useGame, type GameApi } from './useGame.ts';
-import { useTheme } from './useTheme.ts';
+import { useTheme, type Theme } from './useTheme.ts';
 import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
 import { Reveal } from './components/Reveal.tsx';
@@ -105,7 +105,9 @@ function Toolbar({ game }: { game: GameApi }) {
       </div>
 
       <div className="toolbar__right">
-        <div className="modes" role="group" aria-label="Theme">
+        {/* Wide screens: the segmented pair. Narrow screens: a single swap
+            button (CSS swaps which one shows), so the labels never clip. */}
+        <div className="modes theme-seg" role="group" aria-label="Theme">
           <button
             aria-pressed={theme === 'letterpress'}
             onClick={() => setTheme('letterpress')}
@@ -119,6 +121,7 @@ function Toolbar({ game }: { game: GameApi }) {
             Cute
           </button>
         </div>
+        <ThemeSwap theme={theme} setTheme={setTheme} />
         {state.mode === 'daily' ? (
           <span className="chip" title="Days cleared in a row">
             Streak <strong>{game.streak}</strong>
@@ -149,6 +152,40 @@ function Toolbar({ game }: { game: GameApi }) {
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The compact theme control for narrow screens. It shows the current theme (to
+ * match the Daily/Endless pair above it) with a swap glyph that signals it is
+ * tap-to-change, and toggles to the other theme. The accessible name states the
+ * action since the visible label only shows the current state.
+ */
+function ThemeSwap({
+  theme,
+  setTheme,
+}: {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+}) {
+  const isCute = theme === 'cute';
+  const currentName = isCute ? 'Cute' : 'Classic';
+  const nextName = isCute ? 'Classic' : 'Cute';
+  return (
+    <button
+      type="button"
+      className="theme-swap"
+      onClick={() => setTheme(isCute ? 'letterpress' : 'cute')}
+      aria-label={`Theme: ${currentName}. Activate to switch to ${nextName}.`}
+    >
+      <span className="theme-swap__glyph" aria-hidden="true">
+        ◐
+      </span>
+      <span className="theme-swap__name">{currentName}</span>
+      <span className="theme-swap__cycle" aria-hidden="true">
+        ⇄
+      </span>
+    </button>
   );
 }
 
