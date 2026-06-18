@@ -7,6 +7,7 @@ import { useTheme, type Theme } from './useTheme.ts';
 import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
 import { Reveal } from './components/Reveal.tsx';
+import { HowItWorks } from './components/HowItWorks.tsx';
 import { EditionCard } from './components/EditionCard.tsx';
 import { Confetti } from './components/Confetti.tsx';
 import { Decorations } from './components/Decorations.tsx';
@@ -28,7 +29,17 @@ interface Props {
 
 export function Game({ data, audio, storage }: Props) {
   const game = useGame(data, audio, storage);
-  useGlobalKeys(game);
+
+  // The "How the words work" explainer. Its open flag is lifted here so the
+  // global key handler can stand down while it is up (the same precedent as the
+  // reveal), and so focus can return to the trigger on close.
+  const [howOpen, setHowOpen] = useState(false);
+  const howTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeHow = useCallback(() => {
+    setHowOpen(false);
+    howTriggerRef.current?.focus();
+  }, []);
+  useGlobalKeys(game, howOpen);
 
   const { state } = game;
   const [theme] = useTheme();
@@ -79,7 +90,7 @@ export function Game({ data, audio, storage }: Props) {
         />
       </div>
 
-      <Colophon />
+      <Colophon triggerRef={howTriggerRef} onOpenHow={() => setHowOpen(true)} />
 
       {/* Screen-reader announcements: found words, tier changes, the crown. */}
       <div className="visually-hidden" role="status" aria-live="polite">
@@ -97,6 +108,8 @@ export function Game({ data, audio, storage }: Props) {
           onClose={game.closeReveal}
         />
       )}
+
+      {howOpen && <HowItWorks onClose={closeHow} />}
     </div>
   );
 }
@@ -304,7 +317,13 @@ function Controls({ game }: { game: GameApi }) {
   );
 }
 
-function Colophon() {
+function Colophon({
+  triggerRef,
+  onOpenHow,
+}: {
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  onOpenHow: () => void;
+}) {
   const [theme] = useTheme();
   const fonts =
     theme === 'cute' ? 'Fredoka and Nunito' : 'Fraunces and Spectral';
@@ -314,19 +333,33 @@ function Colophon() {
       and etymologies from Wiktionary, CC BY-SA 4.0.
       <br />
       Set in {fonts}.
+      <br />
+      {/* The quiet expansion of the colophon: where a curious person already
+          looks. Kept out of the play surface on purpose. */}
+      <button
+        ref={triggerRef}
+        type="button"
+        className="colophon__how"
+        onClick={onOpenHow}
+      >
+        How the words work
+      </button>
     </footer>
   );
 }
 
 /** Full keyboard play: type letters, Enter to set, Backspace to delete. */
-function useGlobalKeys(game: GameApi) {
+function useGlobalKeys(game: GameApi, suppressed: boolean) {
   const ref = useRef(game);
   ref.current = game;
+  const suppressedRef = useRef(suppressed);
+  suppressedRef.current = suppressed;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = ref.current;
-      if (g.state.revealOpen) return; // the dialog owns the keyboard
+      // The reveal or the explainer popup owns the keyboard while it is open.
+      if (g.state.revealOpen || suppressedRef.current) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (e.key === 'Enter') {

@@ -1346,6 +1346,57 @@ button {
   letter-spacing: 0.02em;
 }
 
+/* ---- How the Words Work (the explainer) --------------------------------- */
+/* It borrows the reveal skin (so each theme styles it for free) but its body is
+   six paragraphs, not three lines, so it must cap its height and scroll rather
+   than spill off a short screen. */
+.reveal--how {
+  max-width: 32rem;
+  max-height: calc(100dvh - 2.4rem);
+  overflow-y: auto;
+}
+.reveal__word--how {
+  font-size: clamp(1.7rem, 6vw, 2.4rem);
+  /* The title is a phrase, not a found word, so keep its given casing rather
+     than the lowercasing the reveal applies to words. */
+  text-transform: none;
+}
+.how__body {
+  text-align: left;
+}
+.how__body p {
+  margin: 0 0 0.9rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.how__body p:last-child {
+  margin-bottom: 0;
+}
+.how__body a {
+  color: var(--crown-deep);
+  text-underline-offset: 0.15em;
+}
+[data-theme='cute'] .how__body a {
+  color: var(--accent);
+}
+
+/* The quiet trigger that lives with the colophon, not in the play surface. */
+.colophon__how {
+  margin-top: 0.5rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ink-soft);
+  letter-spacing: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+.colophon__how:hover {
+  color: var(--ink);
+}
+
 /* ---- Edition Complete (the win state) ----------------------------------- */
 /* A sibling to the reveal, but ink and oxblood, ornamental, and non-blocking:
    no backdrop, fixed near the top, so the board below stays live. */
