@@ -566,3 +566,134 @@ describe('Game edition confetti', () => {
     expect(confetti()).toBeNull();
   });
 });
+
+// The controls row, redesigned into two clusters: a quiet utility pair (Shuffle,
+// Clear) set apart from the prominent primary pair (Delete, then Submit). These
+// tests pin the structure, the accessible names, the wiring, and the rule that
+// the two themes share one layout (skin differs, structure does not).
+describe('Controls layout', () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.clear();
+  });
+
+  const controls = () => document.querySelector('.controls') as HTMLElement;
+  const stickText = () =>
+    document.querySelector('.stick')?.textContent?.trim() ?? '';
+  const controlNames = () =>
+    within(controls())
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label') ?? b.textContent?.trim() ?? '');
+
+  it('orders the controls Shuffle, Clear, Delete, Submit', () => {
+    renderGame();
+    const names = controlNames();
+    expect(names).toEqual([
+      'Shuffle',
+      'Clear',
+      'Delete last letter',
+      'Set word',
+    ]);
+    // Delete sits before Submit: Bea's "delete before submit".
+    expect(names.indexOf('Delete last letter')).toBeLessThan(
+      names.indexOf('Set word'),
+    );
+  });
+
+  it('groups the controls into a utility cluster and a primary cluster', () => {
+    renderGame();
+    const groups = controls().querySelectorAll<HTMLElement>('.controls__group');
+    expect(groups).toHaveLength(2);
+
+    const utility = groups[0]!;
+    const primary = groups[1]!;
+    expect(
+      within(utility).getByRole('button', { name: 'Shuffle' }),
+    ).toBeInTheDocument();
+    expect(
+      within(utility).getByRole('button', { name: 'Clear' }),
+    ).toBeInTheDocument();
+    expect(
+      within(primary).getByRole('button', { name: 'Delete last letter' }),
+    ).toBeInTheDocument();
+    expect(
+      within(primary).getByRole('button', { name: 'Set word' }),
+    ).toBeInTheDocument();
+  });
+
+  it('gives every control its accessible name', () => {
+    renderGame();
+    expect(screen.getByRole('button', { name: 'Shuffle' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Delete last letter' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Set word' }),
+    ).toBeInTheDocument();
+  });
+
+  it('Delete removes the last composed letter', () => {
+    renderGame();
+    type('sea');
+    expect(stickText()).toBe('sea');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete last letter' }));
+    expect(stickText()).toBe('se');
+  });
+
+  it('Clear empties the composing word', () => {
+    renderGame();
+    type('sea');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(stickText()).toBe('Set letters to make a word');
+  });
+
+  it('Submit sets the composed word into the glossary', () => {
+    renderGame();
+    type('sea');
+    fireEvent.click(screen.getByRole('button', { name: 'Set word' }));
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    expect(within(glossary).getByText('sea')).toBeInTheDocument();
+  });
+
+  it('Shuffle rearranges the rack', () => {
+    renderGame();
+    const before = screen
+      .getAllByRole('button', { name: /^Letter / })
+      .map((b) => b.textContent);
+    // Shuffle is randomised; retry a few times so the rare no-op shuffle does
+    // not flake the test.
+    let after = before;
+    for (let i = 0; i < 20 && after.join('') === before.join(''); i++) {
+      fireEvent.click(screen.getByRole('button', { name: 'Shuffle' }));
+      after = screen
+        .getAllByRole('button', { name: /^Letter / })
+        .map((b) => b.textContent);
+    }
+    expect(after.join('')).not.toBe(before.join(''));
+    expect([...after].sort()).toEqual([...before].sort());
+  });
+
+  it('keeps keyboard parity: Backspace deletes and Enter submits', () => {
+    renderGame();
+    type('sea');
+    fireEvent.keyDown(window, { key: 'Backspace' });
+    expect(stickText()).toBe('se');
+
+    fireEvent.keyDown(window, { key: 'a' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    expect(within(glossary).getByText('sea')).toBeInTheDocument();
+  });
+
+  it('renders one shared structure for both themes (skin differs, not layout)', () => {
+    document.documentElement.dataset.theme = 'letterpress';
+    renderGame();
+    const classic = controls().innerHTML;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cute' }));
+    const cute = controls().innerHTML;
+
+    expect(cute).toBe(classic);
+  });
+});
