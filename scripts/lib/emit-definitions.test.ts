@@ -1,0 +1,64 @@
+import { describe, expect, it } from 'vitest';
+import {
+  bundleStats,
+  buildBundles,
+  coverage,
+  shardProjection,
+} from './emit-definitions.ts';
+
+const enable = ['ace', 'cab', 'bead', 'deed'];
+const defs = new Map([
+  ['ace', 'a single pip'],
+  ['cab', 'a taxi'],
+  ['bead', 'a small ball'],
+  // "deed" intentionally has no definition.
+]);
+
+describe('buildBundles', () => {
+  it('puts each formable defined word in every rack that can form it', () => {
+    const bundles = buildBundles(['abcdef', 'abdeed'], enable, defs);
+    // rack "abcdef": a,b,c,d,e,f (one each) -> ace, cab, bead all formable; deed needs 2d+2e, no.
+    // bead = b,e,a,d - all present. Brief comment was wrong; corrected here.
+    expect(bundles.get('abcdef')).toEqual({
+      ace: 'a single pip',
+      cab: 'a taxi',
+      bead: 'a small ball',
+    });
+    // rack "abdeed": a:1,b:1,d:2,e:2 -> bead formable, deed formable but no def.
+    expect(bundles.get('abdeed')).toEqual({ bead: 'a small ball' });
+  });
+
+  it('omits words that have no definition', () => {
+    const bundles = buildBundles(['deed'], enable, defs);
+    expect(bundles.get('deed')).toEqual({});
+  });
+});
+
+describe('coverage', () => {
+  it('counts union words that have a definition', () => {
+    expect(coverage(['ace', 'cab', 'deed'], defs)).toEqual({
+      union: 3,
+      defined: 2,
+      percent: 67,
+    });
+  });
+});
+
+describe('bundleStats and shardProjection', () => {
+  it('reports combined, average, and max bundle byte sizes', () => {
+    const bundles = new Map<string, Record<string, string>>([
+      ['x', { ace: 'a single pip' }],
+      ['y', { cab: 'a taxi' }],
+    ]);
+    const stats = bundleStats(bundles);
+    expect(stats.count).toBe(2);
+    expect(stats.combined).toBeGreaterThan(0);
+    expect(stats.max).toBeGreaterThanOrEqual(stats.average);
+  });
+
+  it('projects per-first-letter shard sizes', () => {
+    const shards = shardProjection(defs);
+    expect(Object.keys(shards.perShard).sort()).toEqual(['a', 'b', 'c']);
+    expect(shards.combined).toBeGreaterThan(0);
+  });
+});
