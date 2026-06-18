@@ -1,7 +1,7 @@
 # Vendored word list provenance
 
 These raw lists are committed so the build is fully offline and reproducible.
-ENABLE2K and SCOWL v1 are frozen, so reading these local files is safe forever.
+The ENABLE list and SCOWL are frozen, so reading these local files is safe forever.
 Refresh them only by re-running: pnpm data:vendor
 
 ## ENABLE

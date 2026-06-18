@@ -8,7 +8,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { SCOWL_VARIANTS, SIZE_95_SIZES } from './lib/config.ts';
-import { CACHE_DIR, DATA_RAW_DIR, ensureDir, fetchText } from './lib/util.ts';
+import {
+  CACHE_DIR,
+  DATA_RAW_DIR,
+  ensureDir,
+  fetchText,
+  sleep,
+} from './lib/util.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -22,13 +28,27 @@ async function vendorEnable(): Promise<void> {
   await writeFile(join(DATA_RAW_DIR, 'enable1.txt'), raw, 'utf8');
 }
 
+async function downloadBinary(url: string, retries = 3): Promise<Buffer> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return Buffer.from(await res.arrayBuffer());
+    } catch (err) {
+      lastError = err;
+      await sleep(250 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
 async function vendorScowl(): Promise<void> {
   await ensureDir(CACHE_DIR);
   const tarball = join(CACHE_DIR, 'scowl.tar.gz');
   const extractRoot = join(CACHE_DIR, 'scowl');
-  const res = await fetch(SCOWL_TARBALL_URL);
-  if (!res.ok) throw new Error(`SCOWL download failed: HTTP ${res.status}`);
-  await writeFile(tarball, Buffer.from(await res.arrayBuffer()));
+  const buf = await downloadBinary(SCOWL_TARBALL_URL);
+  await writeFile(tarball, buf);
   await ensureDir(extractRoot);
   await execFileAsync('tar', [
     'xzf',
@@ -45,8 +65,9 @@ async function vendorScowl(): Promise<void> {
       try {
         const band = await readFile(join(extractRoot, 'final', name), 'latin1');
         await writeFile(join(outDir, name), band, 'latin1');
-      } catch {
-        // Some variant/size combinations do not exist. Skip quietly.
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+        // Missing variant/size combinations are expected; skip them.
       }
     }
   }
@@ -57,7 +78,7 @@ async function writeProvenance(): Promise<void> {
     '# Vendored word list provenance',
     '',
     'These raw lists are committed so the build is fully offline and reproducible.',
-    'ENABLE2K and SCOWL v1 are frozen, so reading these local files is safe forever.',
+    'The ENABLE list and SCOWL are frozen, so reading these local files is safe forever.',
     'Refresh them only by re-running:  pnpm data:vendor',
     '',
     '## ENABLE',
