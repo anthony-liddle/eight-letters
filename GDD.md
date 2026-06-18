@@ -82,21 +82,58 @@ Two pools, and one important split:
 Tiers and the found count are computed against the common pool, not full ENABLE. A rich rack can hold well over a hundred ENABLE words, which would make completion brutal and crush the tier percentages into nonsense. So:
 
 - "X of Y words set" counts the common pool.
-- Tier percentage is player points from common-pool words over the common-pool total.
-- ENABLE-only finds (valid but not common) still score, as bonus points on top. They do not change the denominator.
+- Completion is word-count based: set words found over total set words. The progress bar and the tiers both run on this fraction, so the bar and the "X of Y" counter are always the same fact in two forms, and can never disagree. (An earlier draft weighted the bar by points, which made it read 98 percent at 12 of 13 words. Word-count fixes that.)
+- Score is the separate meter. Every valid find adds points by length, per the curve above. Off-page finds climb the score, never the completion bar. The bar measures the goal, finishing the set; the score measures everything found.
+- Off-page finds do not change the denominator. Their recognition is the rarity ladder (see the glossary), not a points multiplier in v1.
+
+The score has a composition the bar does not: set points versus off-page points. The at-a-glance split of where points came from belongs to the score readout in the totals summary, not the completion bar, which stays a pure set-completion meter. That readout is specced separately.
 
 This is what keeps the tiers feeling like Spelling Bee rather than impossible.
 
-Tiers (Remix), by percentage of the common-pool total:
+Tiers (Remix), by fraction of set words found:
 
 - 0.00 Blank Page
 - 0.08 A Few Words
 - 0.22 Warming Up
 - 0.40 In the Flow
 - 0.60 Word Hoard
-- 0.85 and source word found: Found the Word (top)
+- 0.85 and source word found: Found the Word
+- 1.00, every word in the set: Edition Complete (the crown)
 
-The top rung needs both the high bar and the source word. That fuses her two signatures: always getting the long word, always going Queen Bee. Thresholds are tunable after playtest.
+The Found the Word rung needs both the high bar and the source word. That fuses her two signatures: always getting the long word, always going Queen Bee. Edition Complete is the true ceiling, every word in the common set found. Thresholds are tunable after playtest, but Edition Complete is always 100 percent of the set.
+
+Edition Complete, the win state. When the set hits 100 percent (every common-pool word found), fire a one-time celebration. It does not end the game: input stays live and play continues for off-page finds. The progress bar fills fully with a finishing flourish, a printer's ornament or pressmark appears, and a one-time card slides in, a sibling to the source-word reveal but in ink and oxblood rather than amber, ornamental rather than a definition. A distinct, slightly grander sound, a step above the tier-up and source-word cues. No new color: completion is a typographic and ornamental event, not a sixth accent. After the moment passes, the tier label holds a quiet Edition Complete state so the achievement stays visible while she keeps playing.
+
+## The Glossary: The Set And The Rarity Ladder
+
+Found words split on one axis: on the page, or off it. The set is the goal and stays clean and unbadged. Everything found beyond the set earns a rarity grade. Every mark is filled and positive. Nothing reads as a blank you failed to fill.
+
+The set (the goal):
+
+- In the set: a filled green square (heart in cute). One of the common-pool words the tiers count. The "X of Y" count tracks only these. The set carries no rarity label, because it is the thing you complete, not a rung on the ladder. Calling it "common" would make the goal read as the boring words, the opposite of how completion should feel, so the set is simply the set.
+
+Off the page: the rarity ladder.
+
+Any valid ENABLE word formable from the rack but outside the set is an off-page find, graded by how far past the common cutoff it sits. Three rungs, a hypothesis to confirm against real racks during tuning, collapsible to two if the bands clump:
+
+- Uncommon: in SCOWL size 70 but not in the set. Familiar enough, just under the common cutoff. This is where a word like "ulna" lands. Not lesser, just off the page.
+- Rare: in SCOWL size 95 but not in 70. The pleasant-surprise band.
+- Mythic: valid in ENABLE but beyond size 95. The genuinely obscure tail, the word-nerd payoff for a linguist.
+
+Marks and color:
+
+- Every off-page find uses the discovery blue, with the rung encoded by shape, not color, so the ladder survives color-blind play and stays inside one-color-one-job. Letterpress escalates marks (for example dagger, diamond, then a pressmark). Cute escalates glyphs (star, sparkle, then a gem). Points are always shown inline, because the points are the reward.
+- Rung names are vocabulary, skinnable per theme like the marks. Cute leans into the loot-ladder register: Uncommon, Rare, Mythic. Letterpress may want a quieter typographic skin for the same three rungs. That wording is an open voice question, not a structural one.
+
+No denominator, ever:
+
+- The set carries an "X of Y" because it is meant to be finished. The rarity ladder never does. Counts per rung can appear in the totals summary ("Uncommon 4, Rare 2, Mythic 1"), but never "2 of 47 Rare." Advertising how many off-page words exist would turn open-ended discovery into a grind, the exact thing the set split prevents.
+
+Source word: its own crown mark and legend entry, in amber (peach in cute). The peak, above the whole ladder.
+
+Celebration hierarchy (the safeguard):
+
+- The ladder stays seasoning, never the main course. The two peaks are the source word and Edition Complete. Those are the loud moments and they own the confetti. A rarity find is a small, pleasant chime that may grow a little by rung, with Mythic earning a touch more sparkle in cute, but it never rivals the crown or the completion moment. If a Rare find ever feels bigger than finishing the set, the celebration has inverted and needs pulling back, not the model.
 
 ## Word List, Validation, And Pipeline
 
@@ -105,6 +142,7 @@ Two public-domain lists, both baked in. No per-guess network call.
 - Validation: ENABLE (Enhanced North American Benchmark LExicon). About 170k words, public domain, the standard for hobby word games. A guess is valid if it is 3 letters or more, formable from the 8 letters, and in ENABLE.
 - Source-word pool: SCOWL small (size 35 to 50) filtered to length 8, then hand-reviewed to drop anything Bea would not recognize as the answer. Keep it modest, a few hundred recognizable words. Small enough to review by hand and to carry etymology for.
 - Common pool (the tier denominator): SCOWL small filtered to the day's letters, length 3 and up.
+- Rarity bands (off-page finds): graded by SCOWL membership. Uncommon is in size 70 but not in the set, Rare is in size 95 but not in 70, Mythic is valid in ENABLE but beyond size 95. Three rungs as a hypothesis, validated against real-rack distribution during tuning.
 
 Plurals and inflections are accepted, since they are valid ENABLE words. Proper nouns and slurs are out (ENABLE already excludes them). Minimum word length is 3, honoring the original.
 
@@ -113,13 +151,14 @@ Build-time pipeline (a script, not runtime):
 1. Produce the ENABLE validation set as a compact structure (a Set, or a length-bucketed index for fast formability checks).
 2. Derive the source-word pool from SCOWL small, length 8, hand-reviewed.
 3. For each source word, pull a definition and short etymology from Wiktionary. Wiktionary is CC BY-SA, so the build must carry attribution. Bake the result to JSON.
-4. Ship ENABLE, the common-pool source (SCOWL small), and the source-pool-with-etymology JSON as static assets.
+4. Ship ENABLE, the common-pool source (SCOWL small), SCOWL size 70 and size 95 membership sets for the rarity ladder, and the source-pool-with-etymology JSON as static assets.
 
 ## Daily And Endless
 
 - Daily: one puzzle per calendar day, identical on any device. Deterministic, no backend. Rollover at local midnight (a one-person audience, so simpler than NYT's fixed Eastern time).
 - The day index seeds a deterministic shuffle of the source pool, so the sequence never repeats until the pool is exhausted. Pick an epoch date for day one.
-- Endless: a fresh puzzle on demand. Does not touch the streak.
+- Endless: a fresh puzzle on demand, from the New Puzzle button. Does not touch the streak.
+- State retention: Daily and Endless each keep their own in-progress game, persisted independently. Switching modes is a view change and never resets either one. The only way to abandon the current Endless puzzle is the New Puzzle button. A reload preserves both, since nothing but New Puzzle clears Endless.
 - Streak: consecutive daily puzzles cleared to a chosen tier. Local only in v1, sync in v2.
 
 ## Personalization
@@ -135,12 +174,32 @@ Where a copy becomes a gift only you would make.
 - Lo-fi, quiet, typographic. Letterpress signature: the eight letters are type sorts you set into words, and the source word is the word the type was cut for. Carried over from the prototype.
 - Audio for v1: prototype-level synth, behind a clean interface so real Soundscape drops in later. Do not port Soundscape yet. A distinct cue for the source word, a gentle tier-up, a sound toggle, reduced motion and mute from the start.
 
+## Palette
+
+One color, one job. Nothing does two.
+
+- Paper `#F1EEE6`: the background.
+- Ink `#211D17`: primary text and the type sorts.
+- Oxblood `#9D2B25`: brand and chrome only. The masthead, the rubricated "Word," the flourishes, the active mode toggle. Rubrication is the historically correct letterpress second color.
+- Green `#4B6A52`: status only. The "in the set" marker in the glossary, the signal that a found word counts toward the common pool.
+- Amber `#B5872F`: the source-word crown, and nothing else. The reveal card, the crowned glossary chip, the found-source state. Reserved so the emotional peak reads as special.
+- Discovery `#3E5C7E`: off-page finds, the whole rarity ladder. A cool ink-blue, like fountain-pen marginalia, distinct from the warm status, chrome, and crown tones. One blue for every rung; the rung is encoded by mark shape, not by color.
+- Secondary ink: a muted ink for secondary text, darkened to meet WCAG AA against paper. Quiet but legible.
+
+## Themes
+
+The game ships with a theme toggle. Two themes to start, with an architecture that makes more cheap.
+
+- Letterpress (default): the current look. Paper, ink, oxblood, sage, amber, Fraunces. Marks: square for in the set, escalating discovery-blue marks for the off-page rarity rungs (for example dagger, diamond, pressmark), crown for the source word.
+- Cute: a soft kawaii skin over the same layout. Peach-cream background, candy pink and peach accents, cocoa text, rounded bubble letters (Fredoka) with a rounded body face (Nunito), squishy tiles. Motifs: peaches and a tiny silly dinosaur, plus general kawaii softness. Hello Kitty is the register, not a literal character (it is trademarked), so the motifs are original. Marks: heart for in the set, escalating glyphs for the off-page rarity rungs (for example star, sparkle, gem), peach for the source word.
+- Architecture: a data-theme attribute on the root, every color and font as a CSS variable per theme, marks swapped per theme. The choice persists in local storage and loads via an inline head script before paint, so there is no flash of the wrong theme.
+
 ## Accessibility
 
 First-class, not a checklist.
 
 - Full keyboard play. Well-sized tap targets.
-- Screen reader announces found words, score changes, tier changes, and the source-word moment.
+- Screen reader announces found words with their rarity rung, score changes, tier changes, and the source-word moment.
 - Dynamic Type and reflow. A dyslexia-friendly font option is worth considering.
 - Color is never the only signal.
 
@@ -170,6 +229,9 @@ Backend: none in v1. The daily puzzle is a pure function of the date plus the ba
 Not open design questions, just numbers to feel out once it runs against real lists:
 
 - Scoring curve values.
-- Tier thresholds.
+- Tier thresholds, now read as fractions of set words found.
 - Common-pool size (SCOWL 35 versus 50) for the right completion difficulty.
 - Daily epoch date.
+- Rarity ladder rung count: confirm three rungs against the real distribution of off-page finds on typical racks, or collapse to two if the SCOWL bands clump.
+- Whether rarity adds points or is recognition only. Default to recognition, so off-page hunting never competes with completing the set. Revisit only if play feels flat.
+- Letterpress rung vocabulary: the quiet typographic skin for Uncommon, Rare, and Mythic. A voice question, not a structural one.

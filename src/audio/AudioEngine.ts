@@ -1,11 +1,17 @@
+import type { Rung } from '@/engine/index.ts';
+
 /**
  * The audio interface the game plays against. v1 ships a small Web Audio synth;
  * the real Soundscape engine will implement this same shape later, so nothing
  * above this line needs to change when it does.
  */
 export interface AudioEngine {
-  /** A found word lands. Pitch rises with length. */
-  playFound(length: number): void;
+  /**
+   * A found word lands. Pitch rises with length. The rung adds a small, optional
+   * sparkle that grows by rarity, but the cue stays well below the source-word
+   * and Edition Complete moments. Defaults to a plain set find.
+   */
+  playFound(length: number, rung?: Rung): void;
   /** The source word: the crown. A distinct, richer cue. */
   playSource(): void;
   /** Edition Complete: every word in the set found. A step above the rest. */

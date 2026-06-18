@@ -31,9 +31,8 @@
   --tile-face: #f7f3e8;
   --tile-edge: #c9bd9c;
   --good: #4b6a52; /* the "in the set" mark */
-  --discovery: #3e5c7e; /* bonus and rare find text */
-  --bonus: #3e5c7e; /* bonus mark */
-  --rare: #3e5c7e; /* rare mark */
+  --discovery: #3e5c7e; /* the rarity ladder: one ink-blue for every rung */
+  --spark: #3e5c7e; /* decorative sparkles only, not the ladder */
 
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-body: 'Spectral', Georgia, serif;
@@ -92,9 +91,8 @@
   --tile-face: #ffffff;
   --tile-edge: #ffd9c8;
   --good: #c42e60; /* the "in the set" heart */
-  --discovery: #6e4fb8; /* bonus and rare find text, 5:1 (AA) */
-  --bonus: #b5781a; /* amber star mark */
-  --rare: #7e5bc8; /* purple sparkle mark */
+  --discovery: #6e4fb8; /* the rarity ladder: one purple for every rung, 5:1 (AA) */
+  --spark: #7e5bc8; /* decorative sparkles only, not the ladder */
 
   --font-display: 'Fredoka', ui-rounded, system-ui, sans-serif;
   --font-body: 'Nunito', ui-rounded, system-ui, sans-serif;
@@ -209,7 +207,7 @@ button {
 }
 .spark {
   position: absolute;
-  color: var(--rare);
+  color: var(--spark);
   font-size: 14px;
   opacity: 0.7;
 }
@@ -266,7 +264,7 @@ button {
 .deco--dino-spark {
   right: 1.4rem;
   top: 1.6rem;
-  color: var(--rare);
+  color: var(--spark);
   font-size: 16px;
   opacity: 0;
 }
@@ -888,10 +886,12 @@ button {
   text-transform: lowercase;
 }
 
-/* One mark family, told apart by SHAPE (not colour alone) and drawn (not from
-   font glyphs) so all three share one size and sit centred on the word: green
-   square (set), blue dagger (bonus), blue diamond (rare), amber diamond (the
-   source-word crown). Used in the entries, the subhead, and the legend alike. */
+/* One mark family, told apart by SHAPE, not colour: the set is green, the source
+   word amber, and the whole rarity ladder shares one discovery blue, the rung
+   read by shape alone so it survives colour-blind play. Letterpress marks are
+   drawn (not font glyphs) so they share one size: green square (set), then the
+   ladder escalates dagger (uncommon), diamond (rare), pressmark (mythic), with
+   the amber crown (source) above all. Used in entries, the subhead, the legend. */
 .mark {
   display: inline-block;
   position: relative;
@@ -905,12 +905,51 @@ button {
   background: var(--good);
   border-radius: 1px;
 }
+/* Uncommon: a dagger (stem plus a crossbar near the top). */
+.mark--uncommon::before,
+.mark--uncommon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--discovery);
+  border-radius: 0.5px;
+}
+.mark--uncommon::before {
+  top: 0;
+  width: 0.13em;
+  height: 100%; /* the stem */
+}
+.mark--uncommon::after {
+  top: 16%;
+  width: 0.42em;
+  height: 0.13em; /* the crossbar */
+}
+/* Rare: a diamond. */
 .mark--rare {
   width: 0.42em;
   height: 0.42em;
   border-radius: 1px;
-  background: var(--rare);
-  transform: rotate(45deg); /* diamond */
+  background: var(--discovery);
+  transform: rotate(45deg);
+}
+/* Mythic: a pressmark, a filled six-point asterisk, the loudest ladder shape. */
+.mark--mythic {
+  width: 0.56em;
+  height: 0.56em;
+  background: var(--discovery);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
 }
 .mark--source {
   width: 0.62em;
@@ -927,28 +966,11 @@ button {
     100% 100%
   );
 }
-.mark--bonus::before,
-.mark--bonus::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bonus);
-  border-radius: 0.5px;
-}
-.mark--bonus::before {
-  top: 0;
-  width: 0.13em;
-  height: 100%; /* the stem */
-}
-.mark--bonus::after {
-  top: 16%;
-  width: 0.42em;
-  height: 0.13em; /* the crossbar, near the top */
-}
 
-/* Cute marks are soft glyphs (heart, star, sparkle, peach), centred in the same
-   footprint so they share size and alignment with the letterpress shapes. */
+/* Cute marks are soft glyphs (heart, then escalating star, sparkle, gem, then
+   peach), centred in the same footprint so they share size and alignment with
+   the letterpress shapes. The three ladder glyphs all take the discovery colour;
+   only the shape escalates. */
 [data-theme='cute'] .mark {
   width: 1em;
   height: 1em;
@@ -962,25 +984,32 @@ button {
   line-height: 1;
 }
 [data-theme='cute'] .mark--set::before {
-  content: '\2665';
+  content: '\2665'; /* heart */
   color: var(--good);
 }
-[data-theme='cute'] .mark--bonus::before {
-  content: '\2605';
+[data-theme='cute'] .mark--uncommon::before,
+[data-theme='cute'] .mark--uncommon::after {
   position: static;
   inset: auto;
   width: auto;
   height: auto;
   transform: none;
   background: none;
-  color: var(--bonus);
 }
-[data-theme='cute'] .mark--bonus::after {
+[data-theme='cute'] .mark--uncommon::before {
+  content: '\2605'; /* star */
+  color: var(--discovery);
+}
+[data-theme='cute'] .mark--uncommon::after {
   content: none;
 }
 [data-theme='cute'] .mark--rare::before {
-  content: '\2726';
-  color: var(--rare);
+  content: '\2726'; /* sparkle */
+  color: var(--discovery);
+}
+[data-theme='cute'] .mark--mythic::before {
+  content: '\2756'; /* a faceted gem ornament */
+  color: var(--discovery);
 }
 /* A small drawn peach (body, leaf, cleft), consistent with the motif art, in
    place of the colour emoji. */
@@ -996,7 +1025,10 @@ button {
   content: none; /* drawn peach above, not the emoji */
 }
 
-.found__word--rare {
+/* Every off-page rung shares the one discovery ink. */
+.found__word--uncommon,
+.found__word--rare,
+.found__word--mythic {
   color: var(--discovery);
 }
 .found__word--source {
@@ -1004,14 +1036,14 @@ button {
   font-weight: 600;
   font-style: italic;
 }
-/* Points are the reward, so bonus and rare show them inline, in discovery blue. */
+/* Points are the reward, so every off-page find shows them inline, in discovery blue. */
 .found__points {
   margin-left: 0.34em;
   color: var(--discovery);
   font-weight: 600;
   font-size: 0.82em;
 }
-.found__rare-note {
+.found__rung-note {
   margin-left: 0.4em;
   color: var(--discovery);
   font-size: 0.68em;

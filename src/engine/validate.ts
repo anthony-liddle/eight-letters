@@ -1,3 +1,4 @@
+import { classifyWord } from './classify.ts';
 import { MIN_WORD_LENGTH } from './config.ts';
 import { scoreWord } from './scoring.ts';
 import type { GuessResult, Puzzle } from './types.ts';
@@ -29,8 +30,7 @@ export function validateGuess(
     kind: 'valid',
     word,
     score: scoreWord(word),
-    isCommon: puzzle.commonWords.has(word),
-    isRare: puzzle.rareWords.has(word),
+    rung: classifyWord(word, puzzle),
     isSourceWord: word === puzzle.sourceWord,
   };
 }

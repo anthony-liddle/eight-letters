@@ -24,11 +24,18 @@ export const ENABLE_URL =
 export const COMMON_POOL_SIZES = [10, 20] as const;
 
 /**
- * SCOWL bands that define the rarity threshold. A found word is "rare" when it
- * is valid in ENABLE but absent from SCOWL size 70 and below, so these are every
- * band up to and including 70. The baked rare set is ENABLE minus this union.
+ * SCOWL bands up to and including size 70: the first rarity cutoff. A found word
+ * is at most "uncommon" when it sits in this union. The baked beyond-size-70 set
+ * is ENABLE minus this union (the compact complement we ship for the ladder).
  */
-export const RARE_THRESHOLD_SIZES = [10, 20, 35, 40, 50, 55, 60, 70] as const;
+export const SIZE_70_SIZES = [10, 20, 35, 40, 50, 55, 60, 70] as const;
+
+/**
+ * SCOWL bands up to and including size 95: the second rarity cutoff. A word
+ * beyond size 70 but inside this union is "rare"; one beyond it is "mythic". The
+ * baked beyond-size-95 set is ENABLE minus this union.
+ */
+export const SIZE_95_SIZES = [10, 20, 35, 40, 50, 55, 60, 70, 80, 95] as const;
 
 /**
  * Tighter band for the source-word candidate pool. Source words are the answer

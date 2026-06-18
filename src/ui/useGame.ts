@@ -13,11 +13,13 @@ import {
   dayIndex,
   normalizeGuess,
   STREAK_TIER_INDEX,
+  totalScore,
   validateGuess,
   type GuessResult,
   type Puzzle,
   type TierStanding,
 } from '@/engine/index.ts';
+import { RUNG_NAMES } from './rarity.ts';
 import type { GameData } from '@/data/gameData.ts';
 import type { SourceEntry } from '@/data/types.ts';
 import type { AudioEngine } from '@/audio/AudioEngine.ts';
@@ -109,10 +111,6 @@ function tilesFor(puzzle: Puzzle): Tile[] {
   return [...puzzle.letters].map((letter, id) => ({ id, letter }));
 }
 
-function totalOf(tier: TierStanding): number {
-  return tier.commonPoints + tier.bonusPoints;
-}
-
 function buildSlice(payload: SlicePayload): Slice {
   const tiles = tilesFor(payload.puzzle);
   const found = payload.restoreFound.filter((w) =>
@@ -129,7 +127,10 @@ function buildSlice(payload: SlicePayload): Slice {
     found,
     foundSet: new Set(found),
     tier,
-    totalScore: totalOf(tier),
+    // The score is its own meter: the sum of every find by length, set and
+    // off-page alike. The completion bar measures only the set; the score
+    // measures everything found.
+    totalScore: totalScore(found),
     sourceRevealed: found.includes(payload.puzzle.sourceWord),
     revealOpen: false,
     // Rehydrated games never reopen the card; it fires only on the live moment.
@@ -206,23 +207,21 @@ function reduceSlice(slice: Slice, action: Action): Slice {
       const justComplete = slice.tier.fraction < 1 && tier.fraction >= 1;
 
       const points = `${result.score} ${result.score === 1 ? 'point' : 'points'}`;
-      const kindNote = result.isRare
-        ? ', rare find'
-        : result.isCommon
-          ? ''
-          : ', bonus';
+      // The screen reader hears the rung on every off-page find ("Rare find: ...").
       const base = result.isSourceWord
         ? `Source word found: ${result.word}.`
-        : `${result.word}, ${points}${kindNote}.`;
+        : result.rung === 'set'
+          ? `${result.word}, ${points}.`
+          : `${RUNG_NAMES[result.rung]} find: ${result.word}, ${points}.`;
       const announceText = justComplete
         ? `${base} Edition complete. Every word in the set found.`
         : base + (tier.index > slice.tier.index ? ` ${tier.label}.` : '');
 
       const messageText = result.isSourceWord
         ? 'You found the source word.'
-        : result.isRare
-          ? `${result.word}, a rare find.`
-          : `${result.word}, ${result.isCommon ? 'in the set' : 'bonus'}.`;
+        : result.rung === 'set'
+          ? `${result.word}, in the set.`
+          : `${result.word}, ${RUNG_NAMES[result.rung].toLowerCase()} find.`;
 
       return {
         ...slice,
@@ -230,7 +229,7 @@ function reduceSlice(slice: Slice, action: Action): Slice {
         found,
         foundSet,
         tier,
-        totalScore: totalOf(tier),
+        totalScore: totalScore(found),
         sourceRevealed: slice.sourceRevealed || result.isSourceWord,
         revealOpen: justRevealed ? true : slice.revealOpen,
         editionOpen: justComplete ? true : slice.editionOpen,
@@ -278,7 +277,7 @@ function reduceSlice(slice: Slice, action: Action): Slice {
         found: words,
         foundSet,
         tier,
-        totalScore: totalOf(tier),
+        totalScore: totalScore(words),
         sourceRevealed: words.includes(source),
         revealOpen,
         editionOpen,
@@ -345,7 +344,8 @@ export function useGame(
         word,
         data.dictionary,
         data.commonPool,
-        data.rarePool,
+        data.beyond70Pool,
+        data.beyond95Pool,
       ),
       sourceEntry: data.sourceEntry(word),
       dayIndex: idx,
@@ -359,7 +359,8 @@ export function useGame(
         word,
         data.dictionary,
         data.commonPool,
-        data.rarePool,
+        data.beyond70Pool,
+        data.beyond95Pool,
       ),
       sourceEntry: data.sourceEntry(word),
       dayIndex: null,
@@ -449,14 +450,15 @@ export function useGame(
       audio.playInvalid();
       return;
     }
-    // Did this find complete the set? If so, the grander cue takes over.
-    const wasComplete = active.tier.commonPoints >= active.puzzle.commonTotal;
+    // Did this find complete the set? Count-based, like the bar: the last set
+    // word triggers the grander Edition cue, which takes over from the found cue.
+    const wasComplete = active.tier.setFound >= active.tier.setTotal;
     const nowComplete =
-      active.tier.commonPoints + (result.isCommon ? result.score : 0) >=
-      active.puzzle.commonTotal;
+      active.tier.setFound + (result.rung === 'set' ? 1 : 0) >=
+      active.tier.setTotal;
     if (!wasComplete && nowComplete) audio.playEdition();
     else if (result.isSourceWord) audio.playSource();
-    else audio.playFound(result.word.length);
+    else audio.playFound(result.word.length, result.rung);
   }, [composedWord, active.puzzle, active.tier, active.foundSet, audio]);
 
   const setMode = useCallback(
