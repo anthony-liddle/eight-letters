@@ -48,6 +48,21 @@ function fakeStore(): KeyValueStore {
   };
 }
 
+function countingStore(): { store: KeyValueStore; writes: () => number } {
+  const map = new Map<string, string>();
+  let writes = 0;
+  return {
+    store: {
+      getItem: (k) => map.get(k) ?? null,
+      setItem: (k, v) => {
+        writes += 1;
+        map.set(k, v);
+      },
+    },
+    writes: () => writes,
+  };
+}
+
 function type(word: string) {
   for (const ch of word) fireEvent.keyDown(window, { key: ch });
 }
@@ -168,6 +183,32 @@ describe('Game', () => {
     expect(status.textContent).toMatch(/sea/i);
   });
 
+  it('does not write to storage while composing, only on a valid submit', () => {
+    const counting = countingStore();
+    render(
+      <Game
+        data={fakeData()}
+        audio={new NullAudioEngine()}
+        storage={new GameStorage(counting.store)}
+      />,
+    );
+    const afterMount = counting.writes();
+
+    // Compose, delete, clear, and shuffle: none of these change found words.
+    fireEvent.keyDown(window, { key: 's' });
+    fireEvent.keyDown(window, { key: 'e' });
+    fireEvent.keyDown(window, { key: 'a' });
+    fireEvent.keyDown(window, { key: 'Backspace' });
+    fireEvent.keyDown(window, { key: 'Escape' }); // clear
+    fireEvent.click(screen.getByRole('button', { name: 'Shuffle' }));
+    expect(counting.writes()).toBe(afterMount);
+
+    // A valid submitted word is durable progress and must be written.
+    type('sea');
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(counting.writes()).toBeGreaterThan(afterMount);
+  });
+
   it('persists progress across a remount', () => {
     const store = fakeStore();
     const first = renderGame(store);
@@ -208,6 +249,22 @@ describe('Game', () => {
     renderGame();
     const glossary = screen.getByRole('region', { name: /words found/i });
     expect(within(glossary).getByText('source word')).toBeInTheDocument();
+  });
+
+  it('shows no storage warning when persistence works', () => {
+    renderGame();
+    expect(screen.queryByText(/not saving progress/i)).not.toBeInTheDocument();
+  });
+
+  it('warns quietly when this browser will not save progress', () => {
+    render(
+      <Game
+        data={fakeData()}
+        audio={new NullAudioEngine()}
+        storage={new GameStorage(fakeStore(), false)}
+      />,
+    );
+    expect(screen.getByText(/not saving progress/i)).toBeInTheDocument();
   });
 });
 

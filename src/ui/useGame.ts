@@ -397,19 +397,26 @@ export function useGame(
     [active.composing, active.tiles],
   );
 
-  // Persist daily progress whenever the daily found list changes.
+  // Persist daily progress only when durable state changes. The composing word
+  // is transient, so keying on found (plus the puzzle identity) keeps tile taps,
+  // backspace, clear, and shuffle off the synchronous disk-write path.
+  const dailyDayIndex = game.daily.dayIndex;
+  const dailyWord = game.daily.puzzle.sourceWord;
+  const dailyFound = game.daily.found;
   useEffect(() => {
-    const d = game.daily;
-    if (d.dayIndex !== null) {
-      storage.saveDayProgress(d.dayIndex, d.puzzle.sourceWord, d.found);
+    if (dailyDayIndex !== null) {
+      storage.saveDayProgress(dailyDayIndex, dailyWord, dailyFound);
     }
-  }, [game.daily, storage]);
+  }, [dailyFound, dailyDayIndex, dailyWord, storage]);
 
-  // Persist the endless game (identity plus progress) whenever it changes.
+  // Same for endless: persist identity plus progress, never the composing word.
+  const endlessWord = game.endless?.puzzle.sourceWord;
+  const endlessFound = game.endless?.found;
   useEffect(() => {
-    const e = game.endless;
-    if (e) storage.saveEndless(e.puzzle.sourceWord, e.found);
-  }, [game.endless, storage]);
+    if (endlessWord !== undefined && endlessFound !== undefined) {
+      storage.saveEndless(endlessWord, endlessFound);
+    }
+  }, [endlessFound, endlessWord, storage]);
 
   // Record the streak once the daily reaches the streak tier.
   const streakRecorded = useRef(false);
