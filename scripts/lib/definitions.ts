@@ -3,7 +3,8 @@ import { firstSense } from './wiktionary.ts';
 
 /** Cut text to one sentence, then to a word boundary within budget. */
 function capGloss(text: string, budget: number): string {
-  const sentence = text.match(/^(.*?[.!?])(\s|$)/);
+  // Lookahead ensures terminators inside abbreviations (e.g., U.S.) don't end the sentence.
+  const sentence = text.match(/^(.*?[.!?])(?=\s+[A-Z]|$)/);
   let s = sentence?.[1] ?? text;
   if (s.length > budget) {
     const cut = s.slice(0, budget);

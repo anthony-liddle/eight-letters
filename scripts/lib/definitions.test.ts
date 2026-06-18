@@ -41,6 +41,22 @@ describe('shapeDefinition', () => {
     expect(out as string).not.toMatch(/wor$/); // no half words
   });
 
+  it('does not cut at the part-of-speech period', () => {
+    const json = JSON.stringify({
+      en: [
+        {
+          partOfSpeech: 'Noun',
+          definitions: [
+            { definition: 'A full sentence without early termination.' },
+          ],
+        },
+      ],
+    });
+    expect(shapeDefinition(json, 140)).toBe(
+      'noun. A full sentence without early termination.',
+    );
+  });
+
   it('returns null when there is no usable sense', () => {
     expect(shapeDefinition(null, 140)).toBeNull();
     expect(shapeDefinition('{"en":[]}', 140)).toBeNull();

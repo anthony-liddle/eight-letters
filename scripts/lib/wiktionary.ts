@@ -61,7 +61,7 @@ function decodeEntities(s: string): string {
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
 }
 
-export interface RestDefinition {
+interface RestDefinition {
   partOfSpeech?: string;
   definitions?: { definition?: string }[];
 }
