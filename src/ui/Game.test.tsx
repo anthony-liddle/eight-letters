@@ -245,6 +245,29 @@ describe('Game', () => {
     ).toBeInTheDocument();
   });
 
+  it('swaps the theme from the compact button and keeps name and label in sync', () => {
+    document.documentElement.dataset.theme = 'letterpress';
+    renderGame();
+
+    // In classic it shows the current theme and offers to switch to cute.
+    const fromClassic = screen.getByRole('button', {
+      name: /theme: classic\. activate to switch to cute/i,
+    });
+    expect(fromClassic).toHaveTextContent(/classic/i);
+
+    fireEvent.click(fromClassic);
+    expect(document.documentElement.dataset.theme).toBe('cute');
+
+    // Now it shows Cute and offers the way back to Classic.
+    const fromCute = screen.getByRole('button', {
+      name: /theme: cute\. activate to switch to classic/i,
+    });
+    expect(fromCute).toHaveTextContent(/cute/i);
+
+    fireEvent.click(fromCute);
+    expect(document.documentElement.dataset.theme).toBe('letterpress');
+  });
+
   it('lists the source word in the glossary legend', () => {
     renderGame();
     const glossary = screen.getByRole('region', { name: /words found/i });

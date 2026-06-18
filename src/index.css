@@ -458,6 +458,30 @@ button {
   border-color: var(--crown);
   color: var(--crown-deep);
 }
+/* The compact theme control. Hidden on wide screens (the segmented pair shows
+   instead); revealed at the narrow breakpoint below. Matches the other row
+   controls in height and style, squared in classic and a pill in cute via the
+   shared --radius token. */
+.theme-swap {
+  display: none;
+  align-items: center;
+  gap: 0.45rem;
+  height: var(--control-h);
+  padding: 0 0.85rem;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-deep);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  touch-action: manipulation;
+}
+.theme-swap__glyph,
+.theme-swap__cycle {
+  font-size: 0.9em;
+  line-height: 1;
+  color: var(--ink-soft);
+}
 /* Narrow widths: stack into two fixed rows (toggle, then controls) for both
    modes, so the wider New Puzzle cluster can never wrap differently from the
    Streak pill and shift everything below. Same structure, same height. */
@@ -473,6 +497,14 @@ button {
   }
   .toolbar__right {
     justify-content: flex-end;
+  }
+  /* Collapse the segmented theme pair to the single swap button so the row
+     never clips or spills onto a third line. */
+  .theme-seg {
+    display: none;
+  }
+  .theme-swap {
+    display: inline-flex;
   }
 }
 
