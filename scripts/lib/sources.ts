@@ -7,6 +7,7 @@ import {
   SOURCE_POOL_SIZES,
   SOURCE_WORD_LENGTH,
 } from './config.ts';
+import { parseDefinitions } from './definitions.ts';
 import { DATA_RAW_DIR } from './util.ts';
 
 /** Lowercase, ASCII a-z only. Drops accents, apostrophes, proper-noun casing. */
@@ -65,6 +66,16 @@ export async function loadScowlWords(
 /** The common pool: the tier denominator source. */
 export function loadCommonPool(): Promise<string[]> {
   return loadScowlWords(COMMON_POOL_SIZES);
+}
+
+/** The committed short definitions, or an empty map if not acquired yet. */
+export async function loadDefinitions(): Promise<Map<string, string>> {
+  try {
+    const raw = await readFile(join(DATA_RAW_DIR, 'definitions.tsv'), 'utf8');
+    return parseDefinitions(raw);
+  } catch {
+    return new Map();
+  }
 }
 
 /** Source-word candidates: SCOWL words from the tighter bands, exactly 8 letters. */

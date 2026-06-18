@@ -19,8 +19,8 @@
  * positive size-70 and size-95 lists keeps the payload light and giftable while
  * classifying every word identically.
  */
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, rm } from 'node:fs/promises';
+import { join, join as joinPath } from 'node:path';
 import {
   MAX_SOURCE_WORDS,
   REQUIRE_ETYMOLOGY,
@@ -30,12 +30,26 @@ import {
 } from './lib/config.ts';
 import {
   loadCommonPool,
+  loadDefinitions,
   loadEnable,
   loadScowlWords,
   loadSourceCandidates,
 } from './lib/sources.ts';
 import { enrichWord, type WordEntry } from './lib/wiktionary.ts';
-import { REPO_ROOT, mapWithConcurrency, writeAsset } from './lib/util.ts';
+import {
+  ASSET_DIR,
+  DATA_RAW_DIR,
+  REPO_ROOT,
+  mapWithConcurrency,
+  writeAsset,
+} from './lib/util.ts';
+import { formableUnion } from './lib/formable.ts';
+import {
+  bundleStats,
+  buildBundles,
+  coverage,
+  shardProjection,
+} from './lib/emit-definitions.ts';
 
 async function loadExcludeList(): Promise<Set<string>> {
   try {
@@ -123,6 +137,55 @@ async function main(): Promise<void> {
       `(${enriched.length - sourcePool.length} dropped for missing definition or etymology).`,
   );
 
+  console.log('Definitions: emitting per-puzzle bundles.');
+  const sourceWordsList = sourcePool.map((e) => e.word);
+  const defs = await loadDefinitions();
+  const union = formableUnion(sourceWordsList, enable);
+  const bundles = buildBundles(sourceWordsList, enable, defs);
+
+  const defsDir = joinPath(ASSET_DIR, 'defs');
+  await rm(defsDir, { recursive: true, force: true });
+  for (const [word, bundle] of bundles) {
+    await writeAsset(`defs/${word}.json`, JSON.stringify(bundle));
+  }
+
+  const cov = coverage(union, defs);
+  const stats = bundleStats(bundles);
+  const definedEntries = union
+    .filter((w) => defs.has(w))
+    .map((w) => [w, defs.get(w) as string] as [string, string]);
+  const shards = shardProjection(definedEntries);
+  let tsvSize: number;
+  try {
+    const { stat } = await import('node:fs/promises');
+    tsvSize = (await stat(joinPath(DATA_RAW_DIR, 'definitions.tsv'))).size;
+  } catch {
+    tsvSize = 0;
+  }
+
+  console.log('\n=== Definitions measurement report ===');
+  console.log(
+    `  Formable union: ${cov.union.toLocaleString()} words, ` +
+      `${cov.defined.toLocaleString()} defined (${cov.percent}% coverage).`,
+  );
+  console.log(`  definitions.tsv size: ${tsvSize.toLocaleString()} bytes.`);
+  console.log(
+    `  Per-puzzle bundles: ${stats.count} bundles, ` +
+      `${stats.combined.toLocaleString()} bytes combined, ` +
+      `avg ${stats.average.toLocaleString()}, max ${stats.max.toLocaleString()} ` +
+      `(max is what one session loads).`,
+  );
+  console.log(
+    `  First-letter shard projection: ${shards.combined.toLocaleString()} bytes ` +
+      `combined across ${Object.keys(shards.perShard).length} shards.`,
+  );
+  const shardLine = Object.entries(shards.perShard)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([letter, size]) => `${letter}:${size}`)
+    .join('  ');
+  console.log(`    ${shardLine}`);
+  console.log('======================================\n');
+
   const meta = {
     generatedAt: new Date().toISOString(),
     counts: {
@@ -131,6 +194,8 @@ async function main(): Promise<void> {
       beyond70: beyond70.length,
       beyond95: beyond95.length,
       sourcePool: sourcePool.length,
+      definitionUnion: union.length,
+      definitionsCovered: cov.defined,
     },
     attribution: {
       enable: 'ENABLE word list. Public domain.',
