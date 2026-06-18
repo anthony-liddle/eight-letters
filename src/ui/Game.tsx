@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GameData } from '@/data/gameData.ts';
 import type { AudioEngine } from '@/audio/AudioEngine.ts';
 import { GameStorage } from '@/persistence/storage.ts';
@@ -8,7 +8,17 @@ import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
 import { Reveal } from './components/Reveal.tsx';
 import { EditionCard } from './components/EditionCard.tsx';
+import { Confetti } from './components/Confetti.tsx';
 import { Decorations } from './components/Decorations.tsx';
+
+/** Honour the OS reduced-motion setting. Confetti is pure motion, so suppress it. */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
 
 interface Props {
   data: GameData;
@@ -21,6 +31,19 @@ export function Game({ data, audio, storage }: Props) {
   useGlobalKeys(game);
 
   const { state } = game;
+  const [theme] = useTheme();
+
+  // Fire the cute confetti once, on the completion beat. The pulse increments
+  // only on the completing submit, so a mode switch or a reload of an already
+  // complete puzzle never re-fires. Cute only; suppressed under reduced motion.
+  const [confettiOn, setConfettiOn] = useState(false);
+  const lastPulse = useRef(game.editionPulse);
+  useEffect(() => {
+    if (game.editionPulse === lastPulse.current) return;
+    lastPulse.current = game.editionPulse;
+    if (theme === 'cute' && !prefersReducedMotion()) setConfettiOn(true);
+  }, [game.editionPulse, theme]);
+  const endConfetti = useCallback(() => setConfettiOn(false), []);
 
   return (
     <div className="app">
@@ -60,6 +83,8 @@ export function Game({ data, audio, storage }: Props) {
       </div>
 
       {state.editionOpen && <EditionCard onClose={game.closeEdition} />}
+
+      {confettiOn && <Confetti onDone={endConfetti} />}
 
       {state.revealOpen && (
         <Reveal

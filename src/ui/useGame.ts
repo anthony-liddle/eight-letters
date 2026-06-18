@@ -328,6 +328,12 @@ export interface GameApi {
   toggleMute: () => void;
   muted: boolean;
   streak: number;
+  /**
+   * Increments once on the submit that completes the set, the same beat the
+   * Edition cue plays. A monotonic pulse, not the editionOpen flag: editionOpen
+   * lives per slice and toggles on a mode switch, which would re-fire a burst.
+   */
+  editionPulse: number;
 }
 
 export function useGame(
@@ -440,6 +446,9 @@ export function useGame(
     if (!import.meta.env.DEV) return;
     const kind = new URLSearchParams(window.location.search).get('preview');
     if (kind) dispatch({ type: 'PREVIEW', kind });
+    // So the preview shows the whole beat, including the cute confetti, which
+    // rides the completion pulse rather than the editionOpen flag.
+    if (kind === 'edition-complete') setEditionPulse((p) => p + 1);
   }, []);
 
   const submit = useCallback(() => {
@@ -456,8 +465,11 @@ export function useGame(
     const nowComplete =
       active.tier.setFound + (result.rung === 'set' ? 1 : 0) >=
       active.tier.setTotal;
-    if (!wasComplete && nowComplete) audio.playEdition();
-    else if (result.isSourceWord) audio.playSource();
+    if (!wasComplete && nowComplete) {
+      audio.playEdition();
+      // One coordinated beat: the burst rides the same completion as the cue.
+      setEditionPulse((p) => p + 1);
+    } else if (result.isSourceWord) audio.playSource();
     else audio.playFound(result.word.length, result.rung);
   }, [composedWord, active.puzzle, active.tier, active.foundSet, audio]);
 
@@ -475,6 +487,8 @@ export function useGame(
   const newEndless = useCallback(() => {
     dispatch({ type: 'SET_ENDLESS', slice: freshEndlessSlice() });
   }, [freshEndlessSlice]);
+
+  const [editionPulse, setEditionPulse] = useState(0);
 
   const [muted, setMuted] = useState(audio.muted);
   const toggleMute = useCallback(() => {
@@ -516,5 +530,6 @@ export function useGame(
     toggleMute,
     muted,
     streak: storage.currentStreak(game.daily.dayIndex ?? 0),
+    editionPulse,
   };
 }

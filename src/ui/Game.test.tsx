@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { Game } from './Game.tsx';
+import { CONFETTI_DURATION_MS } from './components/confetti.ts';
 import {
   createListDictionary,
   createListWordSource,
@@ -461,5 +462,107 @@ describe('Game edition complete', () => {
     expect(screen.getByRole('status').textContent).toMatch(
       /edition complete\. every word in the set found/i,
     );
+  });
+});
+
+describe('Game edition confetti', () => {
+  const SET = ['sea', 'near', 'dean', 'eased', 'erase'];
+  const enter = () => fireEvent.keyDown(window, { key: 'Enter' });
+  const findWord = (w: string) => {
+    type(w);
+    enter();
+  };
+  const confetti = () => document.querySelector('canvas.confetti');
+  function completeTheSet() {
+    findWord('serenade');
+    fireEvent.click(screen.getByRole('button', { name: /back to the case/i }));
+    SET.forEach(findWord);
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.documentElement.removeAttribute('data-theme');
+    delete (window as { matchMedia?: unknown }).matchMedia;
+    localStorage.clear();
+  });
+
+  it('bursts confetti once when the set is completed in cute', () => {
+    document.documentElement.dataset.theme = 'cute';
+    renderGame();
+    completeTheSet();
+    expect(document.querySelectorAll('canvas.confetti')).toHaveLength(1);
+  });
+
+  it('bursts no confetti in classic, but still shows the card', () => {
+    document.documentElement.dataset.theme = 'letterpress';
+    renderGame();
+    completeTheSet();
+    expect(confetti()).toBeNull();
+    expect(
+      screen.getByRole('region', { name: /edition complete/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('bursts no confetti under reduced motion, but still shows the card', () => {
+    (window as { matchMedia?: unknown }).matchMedia = vi.fn(() => ({
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    document.documentElement.dataset.theme = 'cute';
+    renderGame();
+    completeTheSet();
+    expect(confetti()).toBeNull();
+    expect(
+      screen.getByRole('region', { name: /edition complete/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('the overlay never intercepts taps and is gone after the burst', () => {
+    document.documentElement.dataset.theme = 'cute';
+    renderGame();
+    completeTheSet();
+
+    const canvas = confetti() as HTMLCanvasElement;
+    expect(canvas).not.toBeNull();
+    expect(canvas.style.pointerEvents).toBe('none');
+
+    act(() => {
+      vi.advanceTimersByTime(CONFETTI_DURATION_MS);
+    });
+    expect(confetti()).toBeNull(); // fully torn down, no leftover node
+  });
+
+  it('does not re-fire on a mode switch', () => {
+    document.documentElement.dataset.theme = 'cute';
+    renderGame();
+    completeTheSet();
+    act(() => {
+      vi.advanceTimersByTime(CONFETTI_DURATION_MS);
+    });
+    expect(confetti()).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Endless' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Daily' }));
+    expect(confetti()).toBeNull();
+  });
+
+  it('does not re-fire when an already-complete puzzle is reloaded', () => {
+    const store = fakeStore();
+    document.documentElement.dataset.theme = 'cute';
+    const first = renderGame(store);
+    completeTheSet();
+    act(() => {
+      vi.advanceTimersByTime(CONFETTI_DURATION_MS);
+    });
+    first.unmount();
+
+    // A fresh mount with the completed set restored fires no burst.
+    renderGame(store);
+    expect(confetti()).toBeNull();
   });
 });
