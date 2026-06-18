@@ -5,6 +5,12 @@ import { LADDER_RUNGS, RUNG_NAMES, type LadderRung } from '../rarity.ts';
 interface Props {
   puzzle: Puzzle;
   found: readonly string[];
+  /**
+   * The score meter's value, the single source of truth shared with the
+   * completion bar's readout. The summary shows its composition (set points
+   * versus off-page points), which by construction sums back to this.
+   */
+  totalScore: number;
 }
 
 type Category = 'source' | 'set' | LadderRung;
@@ -77,13 +83,19 @@ function isLadder(category: Category): category is LadderRung {
   return category !== 'set' && category !== 'source';
 }
 
-export function FoundList({ puzzle, found }: Props) {
+/** "point" or "points", for prose like aria labels. */
+function pointWord(n: number): string {
+  return n === 1 ? 'point' : 'points';
+}
+
+export function FoundList({ puzzle, found, totalScore }: Props) {
   const groups = useMemo(() => buildGroups(puzzle, found), [puzzle, found]);
 
   const setTotal = puzzle.commonWords.size;
   const setFound = found.filter((w) => puzzle.commonWords.has(w)).length;
 
-  // Open-ended counts per rung: a tally, never a denominator.
+  // Open-ended counts per rung: a tally, never a denominator. All three rungs
+  // always show in the summary, so it reads as a stable totals block.
   const rungCounts = useMemo(() => {
     const counts: Record<LadderRung, number> = {
       uncommon: 0,
@@ -96,37 +108,104 @@ export function FoundList({ puzzle, found }: Props) {
     }
     return counts;
   }, [found, puzzle]);
-  const anyLadder = LADDER_RUNGS.some((r) => rungCounts[r] > 0);
+
+  // The score's composition: points from the set (the source word's points are
+  // set points, since it is a set word) versus points from off-page finds. The
+  // two partition every find, so they sum to totalScore by construction.
+  const setPoints = useMemo(() => {
+    let sum = 0;
+    for (const w of found) {
+      if (puzzle.commonWords.has(w)) sum += scoreWord(w);
+    }
+    return sum;
+  }, [found, puzzle]);
+  const offPagePoints = totalScore - setPoints;
 
   return (
     <section className="found" aria-label="Words found">
-      <div className="found__head">
-        <h2 className="found__title">The glossary</h2>
-        <span className="found__count">
-          {setFound} of {setTotal} in the set
-        </span>
-      </div>
+      <h2 className="found__title">The glossary</h2>
 
-      {anyLadder && (
-        <p className="found__tallies">
-          {LADDER_RUNGS.filter((r) => rungCounts[r] > 0).map((r) => (
-            <span key={r} className={`found__tally found__tally--${r}`}>
-              <span className={`mark mark--${r}`} aria-hidden="true" />
-              {rungCounts[r]} {RUNG_NAMES[r]}
-            </span>
-          ))}
-        </p>
+      {/* Nothing to summarise on an empty board; the summary appears with the
+          first find, so the start stays an invitation, not a wall of zeros. */}
+      {found.length > 0 && (
+        <div className="summary">
+          <ul className="summary__stats">
+            <li className="summary__stat summary__stat--set">
+              <span className="mark mark--set" aria-hidden="true" />
+              <span className="summary__statline">
+                {setFound} of {setTotal} in the set
+              </span>
+            </li>
+            {LADDER_RUNGS.map((r) => (
+              <li key={r} className={`summary__stat summary__stat--${r}`}>
+                <span className={`mark mark--${r}`} aria-hidden="true" />
+                <span className="summary__statline">
+                  {rungCounts[r]} {RUNG_NAMES[r]}
+                </span>
+              </li>
+            ))}
+            <li className="summary__stat summary__stat--total">
+              <span className="summary__statline">
+                {found.length} {found.length === 1 ? 'word' : 'words'} found
+              </span>
+            </li>
+          </ul>
+
+          <div className="summary__score">
+            <p className="summary__scorehead">
+              <span className="summary__scorelabel">Score</span>
+              <span className="summary__scoretotal">{totalScore}</span>
+            </p>
+            {/* Subordinate to the completion bar: smaller, labelled, role=img not
+              progressbar. The set segment is the status colour, the off-page
+              segment the discovery colour, the same green-equals-set,
+              blue-equals-off-page language as the marks. Segments are told apart
+              by label and value too, so the split survives colour-blind play. */}
+            <div
+              className="compbar"
+              role="img"
+              aria-label={`Score breakdown: ${setPoints} set ${pointWord(setPoints)}, ${offPagePoints} off-page ${pointWord(offPagePoints)}`}
+            >
+              <span
+                className="compbar__seg compbar__seg--set"
+                style={{ flexGrow: setPoints }}
+                aria-hidden="true"
+              />
+              <span
+                className="compbar__seg compbar__seg--offpage"
+                style={{ flexGrow: offPagePoints }}
+                aria-hidden="true"
+              />
+            </div>
+            <p className="compbar__key">
+              <span className="compbar__keyitem compbar__keyitem--set">
+                <span
+                  className="compbar__swatch compbar__swatch--set"
+                  aria-hidden="true"
+                />
+                Set {setPoints}
+              </span>
+              <span className="compbar__keyitem compbar__keyitem--offpage">
+                <span
+                  className="compbar__swatch compbar__swatch--offpage"
+                  aria-hidden="true"
+                />
+                Off-page {offPagePoints}
+              </span>
+            </p>
+          </div>
+        </div>
       )}
 
       {found.length === 0 ? (
         <p className="found__empty">No words set yet. The case is full.</p>
       ) : (
         groups.map((g) => (
-          <div className="found__group" key={g.length}>
+          <section className="found__group" key={g.length}>
             <div className="found__grouphead">
-              <span>{g.length} letters</span>
+              <h3 className="found__grouplen">{g.length} letters</h3>
               {g.setTotal > 0 && (
-                <span>
+                <span className="found__groupcount">
                   {g.setFound} of {g.setTotal}
                 </span>
               )}
@@ -153,11 +232,12 @@ export function FoundList({ puzzle, found }: Props) {
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         ))
       )}
 
       <div className="legend" aria-hidden="true">
+        <span className="legend__caption">Key</span>
         <span>
           <span className="mark mark--set" /> in the set
         </span>
