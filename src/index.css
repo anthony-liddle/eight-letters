@@ -1177,6 +1177,18 @@ button {
 /* ---- Edition Complete (the win state) ----------------------------------- */
 /* A sibling to the reveal, but ink and oxblood, ornamental, and non-blocking:
    no backdrop, fixed near the top, so the board below stays live. */
+/* The cute Edition Complete confetti: a full-viewport canvas above the card,
+   never intercepting taps so the card's button stays reachable. Drawing and
+   teardown live in the Confetti component; this only places the overlay. */
+.confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20; /* above the edition card (15), taps pass through */
+}
+
 .edition {
   position: fixed;
   top: 1.2rem;
