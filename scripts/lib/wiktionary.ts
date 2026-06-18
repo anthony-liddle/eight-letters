@@ -66,7 +66,13 @@ interface RestDefinition {
   definitions?: { definition?: string }[];
 }
 
-function extractDefinition(definitionJson: string | null): string | null {
+export interface FirstSense {
+  pos: string | null;
+  text: string;
+}
+
+/** The first usable English sense, cleaned to plain text. pos is lowercased. */
+export function firstSense(definitionJson: string | null): FirstSense | null {
   if (!definitionJson) return null;
   let json: Record<string, RestDefinition[]>;
   try {
@@ -81,12 +87,18 @@ function extractDefinition(definitionJson: string | null): string | null {
     if (!first?.definition) continue;
     const text = cleanText(first.definition);
     if (!text) continue;
-    const pos = sense.partOfSpeech
-      ? `${sense.partOfSpeech.toLowerCase()}. `
-      : '';
-    return `${pos}${text}`;
+    return { pos: sense.partOfSpeech?.toLowerCase() ?? null, text };
   }
   return null;
+}
+
+/** Source-pool definition string: "pos. text" or just text. Unchanged shape. */
+export function extractDefinition(
+  definitionJson: string | null,
+): string | null {
+  const sense = firstSense(definitionJson);
+  if (!sense) return null;
+  return sense.pos ? `${sense.pos}. ${sense.text}` : sense.text;
 }
 
 function extractEtymology(etymologyHtml: string | null): string | null {
@@ -105,6 +117,39 @@ function extractEtymology(etymologyHtml: string | null): string | null {
 }
 
 // --- Fetch (cached) ------------------------------------------------------
+
+interface RawDefinition {
+  definitionJson: string | null;
+}
+
+/**
+ * Raw REST definition JSON for one word, cached on disk under a definitions-only
+ * key so it does not collide with the source-pool etymology cache. A cached null
+ * (a throttled miss) is re-fetched rather than trusted, so a busy run never
+ * poisons the cache permanently. Network: acquisition only.
+ */
+export async function fetchDefinitionJson(
+  word: string,
+): Promise<string | null> {
+  const cacheKey = `wiktionary-defs/${word}.json`;
+  let cached = await readCacheJson<RawDefinition>(cacheKey);
+  if (!cached || cached.definitionJson === null) {
+    const enc = encodeURIComponent(word);
+    let definitionJson: string | null;
+    try {
+      definitionJson = await fetchText(
+        `https://en.wiktionary.org/api/rest_v1/page/definition/${enc}`,
+        { headers: HEADERS },
+      );
+    } catch {
+      definitionJson = null;
+    }
+    await sleep(REQUEST_DELAY_MS);
+    cached = { definitionJson };
+    if (definitionJson !== null) await writeCacheJson(cacheKey, cached);
+  }
+  return cached.definitionJson;
+}
 
 async function fetchRaw(word: string): Promise<RawResponses> {
   const enc = encodeURIComponent(word);

@@ -31,16 +31,18 @@ The full SCOWL readme and the per-source copyrights are available at
 
 ## Wiktionary (definitions and etymologies)
 
-Each source word carries a short definition and etymology pulled from the
-English Wiktionary at build time. Wiktionary text is licensed under the
-Creative Commons Attribution-ShareAlike 4.0 License (CC BY-SA 4.0).
+Short definitions and etymologies are pulled from the English Wiktionary at
+build time. This covers both the source-word reveal and the per-word tappable
+definitions baked into each puzzle bundle (scripts/data-raw/definitions.tsv
+and public/data/defs/). Wiktionary text is licensed under the Creative Commons
+Attribution-ShareAlike 4.0 License (CC BY-SA 4.0).
 
 - Source: <https://en.wiktionary.org/>
 - License: <https://creativecommons.org/licenses/by-sa/4.0/>
 
 Per the license, derivative use of this text is shared under the same terms.
-The in-app source-word reveal carries a short attribution line, and the baked
-data file records the source.
+The in-app colophon and the source-word reveal each carry a short attribution
+line, and the baked data files record the source.
 
 ## Fonts
 
