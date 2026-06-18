@@ -118,6 +118,39 @@ function extractEtymology(etymologyHtml: string | null): string | null {
 
 // --- Fetch (cached) ------------------------------------------------------
 
+interface RawDefinition {
+  definitionJson: string | null;
+}
+
+/**
+ * Raw REST definition JSON for one word, cached on disk under a definitions-only
+ * key so it does not collide with the source-pool etymology cache. A cached null
+ * (a throttled miss) is re-fetched rather than trusted, so a busy run never
+ * poisons the cache permanently. Network: acquisition only.
+ */
+export async function fetchDefinitionJson(
+  word: string,
+): Promise<string | null> {
+  const cacheKey = `wiktionary-defs/${word}.json`;
+  let cached = await readCacheJson<RawDefinition>(cacheKey);
+  if (!cached || cached.definitionJson === null) {
+    const enc = encodeURIComponent(word);
+    let definitionJson: string | null;
+    try {
+      definitionJson = await fetchText(
+        `https://en.wiktionary.org/api/rest_v1/page/definition/${enc}`,
+        { headers: HEADERS },
+      );
+    } catch {
+      definitionJson = null;
+    }
+    await sleep(REQUEST_DELAY_MS);
+    cached = { definitionJson };
+    if (definitionJson !== null) await writeCacheJson(cacheKey, cached);
+  }
+  return cached.definitionJson;
+}
+
 async function fetchRaw(word: string): Promise<RawResponses> {
   const enc = encodeURIComponent(word);
 
