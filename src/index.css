@@ -933,7 +933,7 @@ button {
   background: var(--discovery);
   transform: rotate(45deg);
 }
-/* Mythic: a pressmark, a filled six-point asterisk, the loudest ladder shape. */
+/* Mythic: a pressmark, a filled five-point star, the loudest ladder shape. */
 .mark--mythic {
   width: 0.56em;
   height: 0.56em;

@@ -195,16 +195,17 @@ describe('Game', () => {
   it('lets an off-page find feed the score but never the bar', () => {
     renderGame();
     const bar = screen.getByRole('progressbar');
+    const meter = screen.getByRole('region', { name: /completion/i });
     expect(bar).toHaveAttribute('aria-valuenow', '0');
+    expect(within(meter).getByText('0 points')).toBeInTheDocument();
 
-    type('denar'); // mythic, off-page
+    type('denar'); // mythic, off-page, 5 letters -> 5 points
     fireEvent.keyDown(window, { key: 'Enter' });
 
     // The bar has not moved: the set is still empty.
     expect(bar).toHaveAttribute('aria-valuenow', '0');
-    // But the score meter records the points.
-    const meter = screen.getByRole('region', { name: /completion/i });
-    expect(within(meter).getByText(/\d+ points?/)).toBeInTheDocument();
+    // But the score meter has climbed by the word's points.
+    expect(within(meter).getByText('5 points')).toBeInTheDocument();
   });
 
   it('updates the tier as common words are found', () => {

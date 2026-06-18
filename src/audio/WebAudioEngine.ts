@@ -103,9 +103,20 @@ export class WebAudioEngine implements AudioEngine {
     const sparkle = RUNG_SPARKLE[rung];
     if (sparkle > 0) {
       this.note(freq * 3, 0.04, 0.12, 'sine', 0.04 + sparkle * 0.02);
-      // Mythic earns one extra high glint.
-      if (sparkle >= 3) this.note(freq * 4, 0.09, 0.1, 'sine', 0.05);
+      // Mythic earns one extra high glint, and a touch more sparkle in cute.
+      if (sparkle >= 3) {
+        this.note(freq * 4, 0.09, 0.1, 'sine', 0.05);
+        if (this.isCute()) this.note(freq * 5, 0.13, 0.1, 'sine', 0.05);
+      }
     }
+  }
+
+  /** The active theme, read from the root where useTheme keeps it before paint. */
+  private isCute(): boolean {
+    return (
+      typeof document !== 'undefined' &&
+      document.documentElement.dataset.theme === 'cute'
+    );
   }
 
   playSource(): void {
