@@ -19,8 +19,8 @@
  * positive size-70 and size-95 lists keeps the payload light and giftable while
  * classifying every word identically.
  */
-import { readFile, rm } from 'node:fs/promises';
-import { join, join as joinPath } from 'node:path';
+import { readFile, rm, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import {
   MAX_SOURCE_WORDS,
   REQUIRE_ETYMOLOGY,
@@ -143,7 +143,7 @@ async function main(): Promise<void> {
   const union = formableUnion(sourceWordsList, enable);
   const bundles = buildBundles(sourceWordsList, enable, defs);
 
-  const defsDir = joinPath(ASSET_DIR, 'defs');
+  const defsDir = join(ASSET_DIR, 'defs');
   await rm(defsDir, { recursive: true, force: true });
   for (const [word, bundle] of bundles) {
     await writeAsset(`defs/${word}.json`, JSON.stringify(bundle));
@@ -157,8 +157,7 @@ async function main(): Promise<void> {
   const shards = shardProjection(definedEntries);
   let tsvSize: number;
   try {
-    const { stat } = await import('node:fs/promises');
-    tsvSize = (await stat(joinPath(DATA_RAW_DIR, 'definitions.tsv'))).size;
+    tsvSize = (await stat(join(DATA_RAW_DIR, 'definitions.tsv'))).size;
   } catch {
     tsvSize = 0;
   }
