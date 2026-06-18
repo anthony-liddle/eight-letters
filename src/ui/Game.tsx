@@ -26,6 +26,12 @@ export function Game({ data, audio, storage }: Props) {
     <div className="app">
       <Decorations celebrate={state.editionOpen} />
       <Masthead />
+      {!storage.persistent && (
+        <p className="storage-note">
+          This browser is not saving progress. Your words will be lost when you
+          leave or reload.
+        </p>
+      )}
       <Toolbar game={game} />
 
       <div className="board">

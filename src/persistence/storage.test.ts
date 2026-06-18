@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameStorage, type KeyValueStore } from './storage.ts';
 
 function fakeStore(): KeyValueStore {
@@ -90,5 +90,40 @@ describe('GameStorage streak', () => {
     expect(storage.currentStreak(5)).toBe(1); // today, cleared
     expect(storage.currentStreak(6)).toBe(1); // tomorrow, still alive
     expect(storage.currentStreak(7)).toBe(0); // day after, missed -> broken
+  });
+});
+
+describe('GameStorage resilience', () => {
+  it('does not throw when the underlying store rejects a write', () => {
+    const throwingStore: KeyValueStore = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+    };
+    const storage = new GameStorage(throwingStore);
+    expect(() => storage.saveDayProgress(1, 'serenade', ['sea'])).not.toThrow();
+    expect(() => storage.saveEndless('absolute', ['lob'])).not.toThrow();
+  });
+});
+
+describe('GameStorage persistence detection', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('reports persistent storage when localStorage is available', () => {
+    expect(new GameStorage().persistent).toBe(true);
+  });
+
+  it('reports non-persistent storage when writes are denied', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('storage access denied');
+    });
+    expect(new GameStorage().persistent).toBe(false);
+  });
+
+  it('treats an explicitly injected store as persistent by default', () => {
+    expect(new GameStorage(fakeStore()).persistent).toBe(true);
   });
 });

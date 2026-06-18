@@ -52,23 +52,40 @@ function memoryStore(): KeyValueStore {
   };
 }
 
-export function defaultStore(): KeyValueStore {
+/**
+ * The real localStorage if it is usable, or an in-memory fallback if access is
+ * denied or disabled. `persistent` is false for the fallback so callers can warn
+ * that progress will not survive a reload.
+ */
+function createDefaultStore(): { store: KeyValueStore; persistent: boolean } {
   try {
     const ls = globalThis.localStorage;
     const probe = '__el_probe__';
     ls.setItem(probe, '1');
     ls.removeItem(probe);
-    return ls;
+    return { store: ls, persistent: true };
   } catch {
-    return memoryStore();
+    return { store: memoryStore(), persistent: false };
   }
 }
 
 export class GameStorage {
   private readonly store: KeyValueStore;
+  /**
+   * False when progress is held in memory only (localStorage denied or
+   * disabled) and will not survive a reload or crash.
+   */
+  readonly persistent: boolean;
 
-  constructor(store: KeyValueStore = defaultStore()) {
-    this.store = store;
+  constructor(store?: KeyValueStore, persistent = true) {
+    if (store) {
+      this.store = store;
+      this.persistent = persistent;
+    } else {
+      const fallback = createDefaultStore();
+      this.store = fallback.store;
+      this.persistent = fallback.persistent;
+    }
   }
 
   private read(): PersistedState {
@@ -89,7 +106,12 @@ export class GameStorage {
       .map(Number)
       .sort((a, b) => b - a);
     for (const key of dayKeys.slice(MAX_DAYS_KEPT)) delete state.days[key];
-    this.store.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      this.store.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // A mid-session quota or permission failure must not crash play. Progress
+      // for this session is lost, but the game keeps running.
+    }
   }
 
   /** Found words saved for a given day, if the source word still matches. */
