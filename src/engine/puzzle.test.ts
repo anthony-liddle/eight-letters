@@ -18,14 +18,24 @@ const ENABLE = [
   'ad', // too short
 ];
 const COMMON = ['sea', 'near', 'dean', 'serenade'];
-// 'sane' is valid but below the SCOWL-70 threshold: a rare find. 'sneer' and
-// 'eased' are valid-but-not-common and not rare: ordinary bonus.
-const RARE = ['sane'];
+// The off-page words split across the ladder by SCOWL membership:
+//   'sneer' is in size 70  -> uncommon (not beyond 70)
+//   'eased' is in size 95  -> rare     (beyond 70, not beyond 95)
+//   'sane'  is beyond 95    -> mythic   (beyond both)
+const BEYOND_70 = ['eased', 'sane'];
+const BEYOND_95 = ['sane'];
 
 const dictionary = createListDictionary(ENABLE);
 const commonPool = createListWordSource(COMMON);
-const rarePool = createListWordSource(RARE);
-const puzzle = createPuzzle('serenade', dictionary, commonPool, rarePool);
+const beyond70Pool = createListWordSource(BEYOND_70);
+const beyond95Pool = createListWordSource(BEYOND_95);
+const puzzle = createPuzzle(
+  'serenade',
+  dictionary,
+  commonPool,
+  beyond70Pool,
+  beyond95Pool,
+);
 
 describe('createPuzzle', () => {
   it('derives the rack as the sorted source letters', () => {
@@ -38,57 +48,72 @@ describe('createPuzzle', () => {
     );
   });
 
-  it('collects the formable common-pool words as the denominator set', () => {
+  it('collects the formable set words as the completion denominator', () => {
     expect(puzzle.commonWords).toEqual(new Set(COMMON));
   });
 
-  it('scores the common total including the source word', () => {
-    // sea 1 + near 3 + dean 3 + serenade 15
-    expect(puzzle.commonTotal).toBe(22);
+  it('partitions the off-page finds into the three rarity rungs', () => {
+    expect(puzzle.uncommonWords).toEqual(new Set(['sneer']));
+    expect(puzzle.rareWords).toEqual(new Set(['eased']));
+    expect(puzzle.mythicWords).toEqual(new Set(['sane']));
   });
 
-  it('collects formable rare words, disjoint from the common set', () => {
-    expect(puzzle.rareWords).toEqual(new Set(['sane']));
-    for (const w of puzzle.rareWords)
-      expect(puzzle.commonWords.has(w)).toBe(false);
+  it('keeps the four bands disjoint and covering the whole validation set', () => {
+    const union = new Set([
+      ...puzzle.commonWords,
+      ...puzzle.uncommonWords,
+      ...puzzle.rareWords,
+      ...puzzle.mythicWords,
+    ]);
+    expect(union).toEqual(puzzle.validationWords);
+    const sizes =
+      puzzle.commonWords.size +
+      puzzle.uncommonWords.size +
+      puzzle.rareWords.size +
+      puzzle.mythicWords.size;
+    expect(sizes).toBe(puzzle.validationWords.size); // no overlap
   });
 });
 
 describe('validateGuess', () => {
   const empty = new Set<string>();
 
-  it('accepts a common word', () => {
+  it('accepts a set word with the set rung', () => {
     expect(validateGuess('sea', puzzle, empty)).toEqual({
       kind: 'valid',
       word: 'sea',
       score: 1,
-      isCommon: true,
-      isRare: false,
+      rung: 'set',
       isSourceWord: false,
     });
   });
 
-  it('marks an ordinary bonus word: valid, not common, not rare', () => {
+  it('grades an uncommon off-page word', () => {
     expect(validateGuess('sneer', puzzle, empty)).toMatchObject({
       kind: 'valid',
-      isCommon: false,
-      isRare: false,
+      rung: 'uncommon',
     });
   });
 
-  it('marks a rare find: valid, not common, rare', () => {
+  it('grades a rare off-page word', () => {
+    expect(validateGuess('eased', puzzle, empty)).toMatchObject({
+      kind: 'valid',
+      rung: 'rare',
+    });
+  });
+
+  it('grades a mythic off-page word', () => {
     expect(validateGuess('sane', puzzle, empty)).toMatchObject({
       kind: 'valid',
-      isCommon: false,
-      isRare: true,
+      rung: 'mythic',
     });
   });
 
-  it('flags the source word', () => {
+  it('flags the source word, still a set word', () => {
     expect(validateGuess('serenade', puzzle, empty)).toMatchObject({
       kind: 'valid',
       isSourceWord: true,
-      isCommon: true,
+      rung: 'set',
     });
   });
 

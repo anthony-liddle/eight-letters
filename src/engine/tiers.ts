@@ -1,28 +1,26 @@
 import { TIERS } from './config.ts';
-import { scoreWord } from './scoring.ts';
 import type { Puzzle, TierStanding } from './types.ts';
 
 /**
  * Compute the tier standing from the set of found words.
  *
- * The tier numerator is common-pool points only. ENABLE-only finds score as
- * bonus and change neither the numerator nor the denominator. The top rung
- * requires both the high fraction and the day's source word.
+ * Completion is word-count based: set words found over total set words. Off-page
+ * finds feed the score, never the bar, so they change neither the numerator nor
+ * the denominator here. The bar and the "X of Y" counter read the same two
+ * numbers, so they can never disagree. The top rung requires both the high
+ * fraction and the day's source word.
  */
 export function computeTier(
   found: ReadonlySet<string>,
   puzzle: Puzzle,
 ): TierStanding {
-  let commonPoints = 0;
-  let bonusPoints = 0;
+  const setTotal = puzzle.commonWords.size;
+  let setFound = 0;
   for (const word of found) {
-    const points = scoreWord(word);
-    if (puzzle.commonWords.has(word)) commonPoints += points;
-    else bonusPoints += points;
+    if (puzzle.commonWords.has(word)) setFound += 1;
   }
 
-  const fraction =
-    puzzle.commonTotal > 0 ? commonPoints / puzzle.commonTotal : 0;
+  const fraction = setTotal > 0 ? setFound / setTotal : 0;
   const sourceFound = found.has(puzzle.sourceWord);
 
   // Highest rung whose threshold is met and whose source-word gate is satisfied.
@@ -45,8 +43,8 @@ export function computeTier(
     id: current.id,
     label: current.label,
     fraction,
-    commonPoints,
-    bonusPoints,
+    setFound,
+    setTotal,
     next,
     isTop: index === TIERS.length - 1,
   };

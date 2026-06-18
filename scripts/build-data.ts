@@ -5,17 +5,27 @@
  *   pnpm data:build
  *
  * Outputs to public/data/:
- *   enable.txt        newline list, the full validation set
- *   common-pool.txt   newline list, the tier denominator (SCOWL small INTERSECT ENABLE)
- *   source-pool.json  [{ word, definition, etymology }], the answer pool
- *   meta.json         counts, attribution, generated timestamp
+ *   enable.txt           newline list, the full validation set
+ *   common-pool.txt      newline list, the set / completion denominator (SCOWL small INTERSECT ENABLE)
+ *   beyond-size-70.txt   newline list, ENABLE minus SCOWL size 70: the rarity-ladder cut at 70
+ *   beyond-size-95.txt   newline list, ENABLE minus SCOWL size 95: the rarity-ladder cut at 95
+ *   source-pool.json     [{ word, definition, etymology }], the answer pool
+ *   meta.json            counts, attribution, generated timestamp
+ *
+ * The two beyond-size files are the compact complements that drive the off-page
+ * rarity ladder. A formable validation word is uncommon if it is in neither
+ * (i.e. inside size 70), rare if it is in beyond-70 but not beyond-95, and
+ * mythic if it is in beyond-95. Shipping the complements rather than the full
+ * positive size-70 and size-95 lists keeps the payload light and giftable while
+ * classifying every word identically.
  */
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   MAX_SOURCE_WORDS,
-  RARE_THRESHOLD_SIZES,
   REQUIRE_ETYMOLOGY,
+  SIZE_70_SIZES,
+  SIZE_95_SIZES,
   WIKTIONARY_CONCURRENCY,
 } from './lib/config.ts';
 import {
@@ -63,13 +73,20 @@ async function main(): Promise<void> {
       `(${(commonRaw.length - common.length).toLocaleString()} dropped as not in ENABLE).`,
   );
 
-  console.log('SCOWL: deriving rare set (ENABLE minus SCOWL size 70).');
-  const scowl70 = new Set(await loadScowlWords(RARE_THRESHOLD_SIZES));
-  const rare = enable.filter((w) => !scowl70.has(w));
-  await writeAsset('rare.txt', rare.join('\n'));
   console.log(
-    `  ${rare.length.toLocaleString()} rare words ` +
-      `(${((rare.length / enable.length) * 100).toFixed(0)}% of ENABLE).`,
+    'SCOWL: deriving rarity bands (ENABLE minus size 70 and size 95).',
+  );
+  const scowl70 = new Set(await loadScowlWords(SIZE_70_SIZES));
+  const scowl95 = new Set(await loadScowlWords(SIZE_95_SIZES));
+  const beyond70 = enable.filter((w) => !scowl70.has(w));
+  const beyond95 = enable.filter((w) => !scowl95.has(w));
+  await writeAsset('beyond-size-70.txt', beyond70.join('\n'));
+  await writeAsset('beyond-size-95.txt', beyond95.join('\n'));
+  console.log(
+    `  ${beyond70.length.toLocaleString()} beyond size 70 ` +
+      `(${((beyond70.length / enable.length) * 100).toFixed(0)}% of ENABLE), ` +
+      `${beyond95.length.toLocaleString()} beyond size 95 ` +
+      `(${((beyond95.length / enable.length) * 100).toFixed(0)}%).`,
   );
 
   console.log('SCOWL: deriving 8-letter source candidates.');
@@ -111,7 +128,8 @@ async function main(): Promise<void> {
     counts: {
       enable: enable.length,
       common: common.length,
-      rare: rare.length,
+      beyond70: beyond70.length,
+      beyond95: beyond95.length,
       sourcePool: sourcePool.length,
     },
     attribution: {

@@ -19,10 +19,14 @@ const ENABLE = [
   'eased',
   'dean',
   'erase',
+  'denar',
 ];
-// set/in-the-set words; 'sane' is bonus (valid, not common, not rare);
-// 'sneer' is the rare find (in the rare pool, not common).
+// The set (common) words carry no rarity label. The off-page finds exercise all
+// three rungs: 'sane' is uncommon (in size 70), 'sneer' is rare (beyond 70, in
+// 95), 'denar' is mythic (beyond 95).
 const COMMON = ['serenade', 'sea', 'near', 'dean', 'eased', 'erase'];
+const BEYOND_70 = ['sneer', 'denar']; // beyond size 70
+const BEYOND_95 = ['denar']; // beyond size 95
 
 const ENTRY: SourceEntry = {
   word: 'serenade',
@@ -34,7 +38,8 @@ function fakeData(): GameData {
   return {
     dictionary: createListDictionary(ENABLE),
     commonPool: createListWordSource(COMMON),
-    rarePool: createListWordSource(['sneer']), // the rare find on this rack
+    beyond70Pool: createListWordSource(BEYOND_70),
+    beyond95Pool: createListWordSource(BEYOND_95),
     sourceWords: ['serenade'], // single-word pool: the daily is always serenade
     sourceEntry: (w) => (w === 'serenade' ? ENTRY : undefined),
   };
@@ -113,44 +118,94 @@ describe('Game', () => {
     return within(glossary).getByText(text).closest('li') as HTMLElement;
   }
 
-  it('renders a bonus word filled with a dagger and inline points', () => {
+  it('renders an uncommon find with its mark and inline points', () => {
     renderGame();
-    type('sane'); // valid, not common, not rare
+    type('sane'); // off-page, in size 70: uncommon
     fireEvent.keyDown(window, { key: 'Enter' });
 
     const li = findWord('sane');
-    expect(li).toHaveClass('found__word--bonus');
-    expect(li.querySelector('.mark--bonus')).toBeTruthy(); // dagger mark, filled
-    expect(li.textContent).toMatch(/\+\d/); // inline points
-    expect(li.textContent).not.toMatch(/rare/i);
-    expect(screen.getByText(/1 bonus found/i)).toBeInTheDocument();
+    expect(li).toHaveClass('found__word--uncommon');
+    expect(li.querySelector('.mark--uncommon')).toBeTruthy();
+    expect(li.textContent).toMatch(/\+\d/); // points are the reward, shown inline
+    expect(screen.getByText(/1 uncommon/i)).toBeInTheDocument();
   });
 
-  it('renders a rare word with a diamond and a rare-find note', () => {
+  it('renders a rare find with its mark and inline points', () => {
     renderGame();
-    type('sneer'); // in the rare pool
+    type('sneer'); // off-page, beyond 70 but in 95: rare
     fireEvent.keyDown(window, { key: 'Enter' });
 
     const li = findWord('sneer');
     expect(li).toHaveClass('found__word--rare');
-    expect(li.querySelector('.mark--rare')).toBeTruthy(); // diamond mark
+    expect(li.querySelector('.mark--rare')).toBeTruthy();
     expect(li.textContent).toMatch(/\+\d/);
-    expect(li.textContent).toMatch(/rare find/i);
-    expect(screen.getByText(/1 rare found/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 rare/i)).toBeInTheDocument();
   });
 
-  it('tallies bonus and rare without ever showing a denominator', () => {
+  it('renders a mythic find with its mark and inline points', () => {
     renderGame();
-    type('sane'); // bonus
-    fireEvent.keyDown(window, { key: 'Enter' });
-    type('sneer'); // rare
+    type('denar'); // off-page, beyond 95: mythic
     fireEvent.keyDown(window, { key: 'Enter' });
 
-    expect(screen.getByText(/1 bonus found/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 rare found/i)).toBeInTheDocument();
-    // The set keeps "X of Y"; bonus and rare never do.
-    expect(screen.queryByText(/bonus.*of/i)).not.toBeInTheDocument();
+    const li = findWord('denar');
+    expect(li).toHaveClass('found__word--mythic');
+    expect(li.querySelector('.mark--mythic')).toBeTruthy();
+    expect(li.textContent).toMatch(/\+\d/);
+    expect(screen.getByText(/1 mythic/i)).toBeInTheDocument();
+  });
+
+  it('tallies each rarity rung without ever showing a denominator', () => {
+    renderGame();
+    ['sane', 'sneer', 'denar'].forEach((w) => {
+      type(w);
+      fireEvent.keyDown(window, { key: 'Enter' });
+    });
+
+    expect(screen.getByText(/1 uncommon/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 rare/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 mythic/i)).toBeInTheDocument();
+    // The set keeps "X of Y"; the rarity ladder never does.
+    expect(screen.queryByText(/uncommon.*of/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/rare.*of/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/mythic.*of/i)).not.toBeInTheDocument();
+  });
+
+  it('announces an off-page find with its rung for screen readers', () => {
+    renderGame();
+    type('sneer'); // rare
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(screen.getByRole('status').textContent).toMatch(/rare find: sneer/i);
+  });
+
+  it('keeps the bar and the X-of-Y counter in agreement', () => {
+    renderGame();
+    // Two of the six set words found.
+    type('sea');
+    fireEvent.keyDown(window, { key: 'Enter' });
+    type('near');
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    const counter = screen.getByText(/2 of 6 in the set/i);
+    expect(counter).toBeInTheDocument();
+    const bar = screen.getByRole('progressbar');
+    // 2 of 6 is 33 percent, the same fact the counter shows.
+    expect(bar).toHaveAttribute('aria-valuenow', '33');
+  });
+
+  it('lets an off-page find feed the score but never the bar', () => {
+    renderGame();
+    const bar = screen.getByRole('progressbar');
+    const meter = screen.getByRole('region', { name: /completion/i });
+    expect(bar).toHaveAttribute('aria-valuenow', '0');
+    expect(within(meter).getByText('0 points')).toBeInTheDocument();
+
+    type('denar'); // mythic, off-page, 5 letters -> 5 points
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    // The bar has not moved: the set is still empty.
+    expect(bar).toHaveAttribute('aria-valuenow', '0');
+    // But the score meter has climbed by the word's points.
+    expect(within(meter).getByText('5 points')).toBeInTheDocument();
   });
 
   it('updates the tier as common words are found', () => {

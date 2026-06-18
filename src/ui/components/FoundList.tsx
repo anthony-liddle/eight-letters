@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
-import { scoreWord, type Puzzle } from '@/engine/index.ts';
+import { classifyWord, scoreWord, type Puzzle } from '@/engine/index.ts';
+import { LADDER_RUNGS, RUNG_NAMES, type LadderRung } from '../rarity.ts';
 
 interface Props {
   puzzle: Puzzle;
   found: readonly string[];
 }
 
-type Category = 'source' | 'set' | 'rare' | 'bonus';
+type Category = 'source' | 'set' | LadderRung;
 
 interface Word {
   word: string;
@@ -16,18 +17,18 @@ interface Word {
 
 interface Group {
   length: number;
-  /** Common-pool words of this length (the "of Y"). */
+  /** Set words of this length (the "of Y"). */
   setTotal: number;
-  /** Common-pool words of this length that were found (the "X"). */
+  /** Set words of this length that were found (the "X"). */
   setFound: number;
   words: Word[];
 }
 
 function categorize(word: string, puzzle: Puzzle): Category {
   if (word === puzzle.sourceWord) return 'source';
-  if (puzzle.commonWords.has(word)) return 'set';
-  if (puzzle.rareWords.has(word)) return 'rare';
-  return 'bonus';
+  // The source word aside, the rung is the single source of truth: set, or one
+  // of the three off-page rungs.
+  return classifyWord(word, puzzle);
 }
 
 function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
@@ -62,7 +63,7 @@ function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
       return {
         length,
         setTotal: setTotalByLen.get(length) ?? 0,
-        // The source word is a common word too, so it counts toward the set.
+        // The source word is a set word too, so it counts toward the set.
         setFound: words.filter(
           (w) => w.category === 'set' || w.category === 'source',
         ).length,
@@ -71,17 +72,31 @@ function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
     });
 }
 
+/** True for an off-page ladder word: points shown inline, mark by shape. */
+function isLadder(category: Category): category is LadderRung {
+  return category !== 'set' && category !== 'source';
+}
+
 export function FoundList({ puzzle, found }: Props) {
   const groups = useMemo(() => buildGroups(puzzle, found), [puzzle, found]);
 
   const setTotal = puzzle.commonWords.size;
   const setFound = found.filter((w) => puzzle.commonWords.has(w)).length;
-  const bonusFound = found.filter(
-    (w) => categorize(w, puzzle) === 'bonus',
-  ).length;
-  const rareFound = found.filter(
-    (w) => categorize(w, puzzle) === 'rare',
-  ).length;
+
+  // Open-ended counts per rung: a tally, never a denominator.
+  const rungCounts = useMemo(() => {
+    const counts: Record<LadderRung, number> = {
+      uncommon: 0,
+      rare: 0,
+      mythic: 0,
+    };
+    for (const w of found) {
+      const c = categorize(w, puzzle);
+      if (isLadder(c)) counts[c] += 1;
+    }
+    return counts;
+  }, [found, puzzle]);
+  const anyLadder = LADDER_RUNGS.some((r) => rungCounts[r] > 0);
 
   return (
     <section className="found" aria-label="Words found">
@@ -92,20 +107,14 @@ export function FoundList({ puzzle, found }: Props) {
         </span>
       </div>
 
-      {(bonusFound > 0 || rareFound > 0) && (
+      {anyLadder && (
         <p className="found__tallies">
-          {bonusFound > 0 && (
-            <span className="found__tally found__tally--bonus">
-              <span className="mark mark--bonus" aria-hidden="true" />
-              {bonusFound} bonus found
+          {LADDER_RUNGS.filter((r) => rungCounts[r] > 0).map((r) => (
+            <span key={r} className={`found__tally found__tally--${r}`}>
+              <span className={`mark mark--${r}`} aria-hidden="true" />
+              {rungCounts[r]} {RUNG_NAMES[r]}
             </span>
-          )}
-          {rareFound > 0 && (
-            <span className="found__tally found__tally--rare">
-              <span className="mark mark--rare" aria-hidden="true" />
-              {rareFound} rare found
-            </span>
-          )}
+          ))}
         </p>
       )}
 
@@ -133,11 +142,13 @@ export function FoundList({ puzzle, found }: Props) {
                     aria-hidden="true"
                   />
                   {w.word}
-                  {(w.category === 'bonus' || w.category === 'rare') && (
-                    <span className="found__points">+{w.score}</span>
-                  )}
-                  {w.category === 'rare' && (
-                    <span className="found__rare-note">rare find</span>
+                  {isLadder(w.category) && (
+                    <>
+                      <span className="found__points">+{w.score}</span>
+                      <span className="found__rung-note">
+                        {RUNG_NAMES[w.category].toLowerCase()}
+                      </span>
+                    </>
                   )}
                 </li>
               ))}
@@ -150,12 +161,11 @@ export function FoundList({ puzzle, found }: Props) {
         <span>
           <span className="mark mark--set" /> in the set
         </span>
-        <span>
-          <span className="mark mark--bonus" /> bonus
-        </span>
-        <span>
-          <span className="mark mark--rare" /> rare
-        </span>
+        {LADDER_RUNGS.map((r) => (
+          <span key={r}>
+            <span className={`mark mark--${r}`} /> {RUNG_NAMES[r]}
+          </span>
+        ))}
         <span>
           <span className="mark mark--source" /> source word
         </span>

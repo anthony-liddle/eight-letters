@@ -29,7 +29,6 @@ export function TierMeter({ tier, totalScore }: Props) {
         </span>
         <span className="tier__score">
           {totalScore} {totalScore === 1 ? 'point' : 'points'}
-          {tier.bonusPoints > 0 ? ` (${tier.bonusPoints} bonus)` : ''}
         </span>
       </div>
       <div

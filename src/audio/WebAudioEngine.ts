@@ -1,4 +1,13 @@
+import type { Rung } from '@/engine/index.ts';
 import type { AudioEngine } from './AudioEngine.ts';
+
+/** How much extra sparkle a found cue earns, by rung. The set gets none. */
+const RUNG_SPARKLE: Record<Rung, number> = {
+  set: 0,
+  uncommon: 1,
+  rare: 2,
+  mythic: 3,
+};
 
 /** A note as a frequency in hertz. */
 type Hz = number;
@@ -81,12 +90,33 @@ export class WebAudioEngine implements AudioEngine {
     osc.stop(t0 + duration + 0.02);
   }
 
-  playFound(length: number): void {
+  playFound(length: number, rung: Rung = 'set'): void {
     if (!this.ensureContext()) return;
     const i = Math.min(Math.max(length - 3, 0), FOUND_NOTES.length - 1);
     const freq = FOUND_NOTES[i]!;
     this.note(freq, 0, 0.28, 'sine', 0.9);
     this.note(freq * 2, 0, 0.18, 'sine', 0.18); // soft octave shimmer
+
+    // A small, pleasant rarity sparkle that grows a touch by rung. Gains stay
+    // tiny next to the found note, and far below the source-word arpeggio and
+    // the Edition Complete run, so the ladder is seasoning, never the main cue.
+    const sparkle = RUNG_SPARKLE[rung];
+    if (sparkle > 0) {
+      this.note(freq * 3, 0.04, 0.12, 'sine', 0.04 + sparkle * 0.02);
+      // Mythic earns one extra high glint, and a touch more sparkle in cute.
+      if (sparkle >= 3) {
+        this.note(freq * 4, 0.09, 0.1, 'sine', 0.05);
+        if (this.isCute()) this.note(freq * 5, 0.13, 0.1, 'sine', 0.05);
+      }
+    }
+  }
+
+  /** The active theme, read from the root where useTheme keeps it before paint. */
+  private isCute(): boolean {
+    return (
+      typeof document !== 'undefined' &&
+      document.documentElement.dataset.theme === 'cute'
+    );
   }
 
   playSource(): void {

@@ -5,5 +5,6 @@ export { scoreWord, totalScore } from './scoring.ts';
 export { canForm, formableFrom, letterCounts } from './formability.ts';
 export { createPuzzle } from './puzzle.ts';
 export { validateGuess, normalizeGuess } from './validate.ts';
+export { classifyWord } from './classify.ts';
 export { computeTier } from './tiers.ts';
 export { dayIndex, dailySourceWord } from './daily.ts';
