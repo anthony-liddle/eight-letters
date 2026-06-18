@@ -658,10 +658,26 @@ button {
 
 /* ---- Controls ----------------------------------------------------------- */
 
+/* Two clusters with one shared structure for both themes. Wide widths: the
+   utility pair sits left and the primary pair right, pushed apart so "Shuffle
+   set apart" reads spatially. The break point is a viewport media query (below),
+   never emergent text-width wrapping, so classic and cute break at exactly the
+   same width. */
 .controls {
   display: flex;
   flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.6rem 1.4rem;
+}
+.controls__group {
+  display: flex;
   gap: 0.6rem;
+}
+/* The primary pair carries the weight, so let it take the room it needs; the
+   utility pair stays compact at its content width. */
+.controls__group--primary {
+  flex: 1 1 auto;
 }
 .btn {
   flex: 1 1 auto;
@@ -677,19 +693,38 @@ button {
     color 0.12s var(--ease);
   touch-action: manipulation;
 }
+/* Tap target floor for the play controls, comfortably past the 44px minimum.
+   Scoped to the controls so the shorter header button (New Puzzle), pinned to
+   --control-h to align the toolbar row, is left untouched. */
+.controls .btn {
+  min-height: 44px;
+}
 .btn:hover:not(:disabled) {
   background: var(--paper-edge);
 }
-.btn--icon {
-  flex: 0 0 auto;
+/* Quiet tertiary utilities: visibly lighter than the primary pair via a softer
+   rule and muted ink, so they recede next to Delete and Submit. */
+.btn--utility {
+  border-color: var(--rule);
+  color: var(--ink-soft);
+}
+/* Delete: a strong, full-size secondary (no longer a cramped corner icon). It
+   keeps the backspace glyph but matches the others' height and tap target. Kept
+   visually distinct from Submit (outlined paper vs accent fill) so a thumb
+   reaching to submit does not delete. */
+.btn--delete {
+  flex: 1 1 auto;
+  font-size: 1.05rem;
 }
 /* The primary action. Active once a word of valid length is composed: it
-   carries the accent and reads unmistakably live. */
+   carries the accent and reads unmistakably live. Given more room than Delete so
+   the two adjacent high-frequency buttons differ in weight and width. */
 .btn--primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--paper);
-  flex-basis: 40%;
+  font-weight: 600;
+  flex: 2 1 auto;
 }
 .btn--primary:hover:not(:disabled) {
   background: var(--accent-deep);
@@ -702,6 +737,28 @@ button {
   color: var(--ink-faint);
   border-color: var(--rule);
   cursor: default;
+}
+/* Narrow widths: the primary pair (Delete, Submit) on the top control row, the
+   utility pair beneath it. The eye scans top to bottom and lands on the most-used
+   actions first, and they stay closest to the rack and composing well where the
+   action flow already is. The visual swap is done with order, so the DOM and
+   focus order stay Shuffle, Clear, Delete, Submit. Same structure in both themes.
+   The 480px break matches the toolbar's. */
+@media (max-width: 480px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .controls__group--primary {
+    order: -1;
+  }
+  .controls__group .btn {
+    flex: 1 1 0;
+  }
+  /* Keep Submit weightier than Delete even when the pair fills the row. */
+  .controls__group--primary .btn--primary {
+    flex: 2 1 0;
+  }
 }
 
 .message {

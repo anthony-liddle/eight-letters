@@ -258,32 +258,48 @@ function TypeCase({ game }: { game: GameApi }) {
   );
 }
 
+/**
+ * Two clusters, organised by how often each action is used. The utility pair
+ * (Shuffle, Clear) is quiet and set apart; the primary pair (Delete, then
+ * Submit) is prominent and sits in easy thumb reach. Delete comes before Submit,
+ * honouring "delete before submit". One shared structure drives both themes: the
+ * skin (colour, shape, font) changes with the theme, the layout never does, so
+ * the two rows break at exactly the same widths.
+ */
 function Controls({ game }: { game: GameApi }) {
   const { composedWord } = game;
   const empty = composedWord.length === 0;
   return (
     <div className="controls">
-      <button className="btn" onClick={game.shuffle}>
-        Shuffle
-      </button>
-      <button className="btn" onClick={game.clear} disabled={empty}>
-        Clear
-      </button>
-      <button
-        className="btn btn--primary"
-        onClick={game.submit}
-        disabled={composedWord.length < 3}
-      >
-        Set word
-      </button>
-      <button
-        className="btn btn--icon"
-        onClick={game.removeLast}
-        disabled={empty}
-        aria-label="Delete last letter"
-      >
-        ⌫
-      </button>
+      <div className="controls__group controls__group--utility">
+        <button className="btn btn--utility" onClick={game.shuffle}>
+          Shuffle
+        </button>
+        <button
+          className="btn btn--utility"
+          onClick={game.clear}
+          disabled={empty}
+        >
+          Clear
+        </button>
+      </div>
+      <div className="controls__group controls__group--primary">
+        <button
+          className="btn btn--delete"
+          onClick={game.removeLast}
+          disabled={empty}
+          aria-label="Delete last letter"
+        >
+          ⌫
+        </button>
+        <button
+          className="btn btn--primary"
+          onClick={game.submit}
+          disabled={composedWord.length < 3}
+        >
+          Set word
+        </button>
+      </div>
     </div>
   );
 }
