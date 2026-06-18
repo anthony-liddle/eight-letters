@@ -627,22 +627,27 @@ button {
   background: var(--tile-foot);
   border-radius: 2px;
 }
-.sort:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
 .sort:active:not(:disabled) {
   transform: translateY(1px);
   box-shadow:
     0 1px 0 var(--surface-highlight) inset,
     0 1px 1px rgba(33, 28, 21, 0.2);
 }
-/* Cute: a gentle wobble on hover and a squish on press. */
-[data-theme='cute'] .sort:hover:not(:disabled) {
-  transform: translateY(-3px) rotate(-2deg);
-}
+/* Cute: a squish on press. */
 [data-theme='cute'] .sort:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--surface-shadow);
+}
+/* Hover lift and wobble only where a real pointer exists. On touch screens
+   :hover sticks to the last-tapped tile, which froze the cute -2deg tilt in
+   place; gating it leaves the press feedback (:active) as the only touch cue. */
+@media (hover: hover) {
+  .sort:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+  [data-theme='cute'] .sort:hover:not(:disabled) {
+    transform: translateY(-3px) rotate(-2deg);
+  }
 }
 .sort:disabled {
   /* lifted out of the case and into the stick: an empty slot remains */
