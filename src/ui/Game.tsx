@@ -72,7 +72,11 @@ export function Game({ data, audio, storage }: Props) {
           <TierMeter tier={state.tier} totalScore={state.totalScore} />
         </div>
 
-        <FoundList puzzle={state.puzzle} found={state.found} />
+        <FoundList
+          puzzle={state.puzzle}
+          found={state.found}
+          totalScore={state.totalScore}
+        />
       </div>
 
       <Colophon />

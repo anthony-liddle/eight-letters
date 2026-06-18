@@ -839,37 +839,153 @@ button {
   border-top: 1px solid var(--ink);
   padding-top: 0.9rem;
 }
-.found__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 0.8rem;
-}
 .found__title {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.2rem;
-  margin: 0;
+  margin: 0 0 0.9rem;
 }
-.found__count {
+
+/* ---- Totals summary ----------------------------------------------------- */
+/* One compact block near the top: set progress (with its denominator), the
+   off-page rung counts (counts only, never a denominator), the total found, and
+   the score with its set-versus-off-page composition. Readability over density:
+   plain labels, room to breathe, holds up wrapped on a narrow column. */
+.summary {
+  margin-bottom: 1.2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.summary__stats {
+  list-style: none;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
   font-size: 0.82rem;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
+.summary__stat {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-soft);
+}
+.summary__statline {
+  white-space: nowrap;
+}
+/* Green for the set, the discovery ink for every off-page rung: the same
+   one-colour-one-job language as the marks. */
+.summary__stat--set .summary__statline {
+  color: var(--good);
+  font-weight: 600;
+}
+.summary__stat--uncommon .summary__statline,
+.summary__stat--rare .summary__statline,
+.summary__stat--mythic .summary__statline {
+  color: var(--discovery);
+}
+.summary__stat--total .summary__statline {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.summary__scorehead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 0.4rem;
+}
+.summary__scorelabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-soft);
+}
+.summary__scoretotal {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+/* The composition bar: smaller and borderless, so it reads as subordinate to
+   the 12px completion bar. Two tones, set versus off-page, told apart by the
+   key's labels and values below as well as colour, so it survives colour-blind
+   play. The track shows through when the score is still zero. */
+.compbar {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--rule);
+}
+.compbar__seg {
+  display: block;
+  min-width: 0;
+}
+.compbar__seg--set {
+  background: var(--good);
+}
+.compbar__seg--offpage {
+  background: var(--discovery);
+}
+.compbar__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.1rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.74rem;
+}
+.compbar__keyitem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36em;
+}
+.compbar__keyitem--set {
+  color: var(--good);
+  font-weight: 600;
+}
+.compbar__keyitem--offpage {
+  color: var(--discovery);
+  font-weight: 600;
+}
+.compbar__swatch {
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+}
+.compbar__swatch--set {
+  background: var(--good);
+}
+.compbar__swatch--offpage {
+  background: var(--discovery);
+}
+
 .found__group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.4rem;
 }
 .found__grouphead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.55rem;
+}
+.found__grouplen {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+.found__groupcount {
   font-size: 0.72rem;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  border-bottom: 1px dotted var(--rule);
-  padding-bottom: 0.25rem;
-  margin-bottom: 0.45rem;
 }
 .found__words {
   list-style: none;
@@ -1052,34 +1168,33 @@ button {
   opacity: 0.85;
 }
 
-/* Open-ended tallies: a plain count, never a denominator. */
-.found__tallies {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 0.9rem;
-  margin: 0 0 0.8rem;
-  font-size: 0.76rem;
-  letter-spacing: 0.03em;
-}
-.found__tally {
-  display: inline-flex;
-  align-items: center;
-  color: var(--discovery);
-}
-
 .found__empty {
   color: var(--ink-faint);
   font-style: italic;
 }
+/* The key, set off from the word list by a rule and the caption above it, so it
+   reads as a legend rather than another row of found words. */
 .legend {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem 1rem;
   font-size: 0.72rem;
   color: var(--ink-soft);
-  margin-top: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--rule);
 }
-.legend span {
+.legend__caption {
+  width: 100%;
+  margin-bottom: 0.15rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+}
+.legend > span {
   display: inline-flex;
   align-items: center;
 }
