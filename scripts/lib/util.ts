@@ -39,22 +39,69 @@ export async function writeAsset(
   await writeFile(full, contents, 'utf8');
 }
 
-/** Fetch with a few retries and a clear failure. Build-time only. */
+const RETRY_BASE_MS = 300;
+const RETRY_MAX_DELAY_MS = 30_000;
+const RETRY_AFTER_MAX_MS = 60_000;
+
+/** Parse a Retry-After header (delta-seconds or HTTP-date) to milliseconds, capped. Returns null if unusable. */
+export function parseRetryAfterMs(
+  value: string | null,
+  now: number = Date.now(),
+): number | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed))
+    return Math.min(Number(trimmed) * 1000, RETRY_AFTER_MAX_MS);
+  const dateMs = Date.parse(trimmed);
+  if (!Number.isNaN(dateMs))
+    return Math.min(Math.max(0, dateMs - now), RETRY_AFTER_MAX_MS);
+  return null;
+}
+
+function backoffMs(attempt: number): number {
+  const expo = Math.min(RETRY_BASE_MS * 2 ** attempt, RETRY_MAX_DELAY_MS);
+  return expo / 2 + Math.random() * (expo / 2); // half fixed, half full jitter
+}
+
+/** Fetch with retries, exponential backoff, jitter, and Retry-After support. Build-time only. */
 export async function fetchText(
   url: string,
   init?: RequestInit,
-  retries = 3,
+  retries = 5,
 ): Promise<string> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
+    let res: Response;
     try {
-      const res = await fetch(url, init);
-      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-      return await res.text();
+      res = await fetch(url, init);
     } catch (err) {
+      // Network failure or timeout
       lastError = err;
-      await sleep(250 * (attempt + 1));
+      if (attempt < retries) await sleep(backoffMs(attempt));
+      continue;
     }
+
+    if (res.ok) return await res.text();
+
+    if (res.status === 429) {
+      lastError = new Error(`HTTP ${res.status} for ${url}`);
+      if (attempt < retries) {
+        const wait =
+          parseRetryAfterMs(res.headers.get('retry-after')) ??
+          backoffMs(attempt);
+        await sleep(wait);
+      }
+      continue;
+    }
+
+    if (res.status >= 500) {
+      lastError = new Error(`HTTP ${res.status} for ${url}`);
+      if (attempt < retries) await sleep(backoffMs(attempt));
+      continue;
+    }
+
+    // Non-retryable 4xx (e.g. 404): fail fast, no retry
+    throw new Error(`HTTP ${res.status} for ${url}`);
   }
   throw lastError;
 }
