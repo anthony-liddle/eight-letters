@@ -751,7 +751,7 @@ describe('Game word tap routing', () => {
     ).toBeInTheDocument();
     expect(sourceSpy).not.toHaveBeenCalled();
     expect(foundSpy).not.toHaveBeenCalled();
-    expect(getDefinition).not.toHaveBeenCalledWith('serenade');
+    expect(getDefinition).not.toHaveBeenCalled();
     expect(document.querySelector('.confetti')).toBeNull();
   });
 
