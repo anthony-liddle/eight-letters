@@ -1052,11 +1052,39 @@ button {
   flex-wrap: wrap;
   gap: 0.3rem 0.75rem;
 }
+.found__word-item {
+  display: contents;
+}
 .found__word {
+  /* Button reset so the chip keeps its existing look. */
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  /* Layout */
   font-size: 1.02rem;
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
   text-transform: lowercase;
+  min-height: 44px;
+}
+.found__disclosure {
+  margin-left: auto;
+  opacity: 0.6;
+  font-style: normal;
+}
+.found__word:hover .found__wordtext,
+.found__word:focus-visible .found__wordtext {
+  text-decoration: underline;
+}
+.found__word:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 /* One mark family, told apart by SHAPE, not colour: the set is green, the source

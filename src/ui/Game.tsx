@@ -87,6 +87,7 @@ export function Game({ data, audio, storage }: Props) {
           puzzle={state.puzzle}
           found={state.found}
           totalScore={state.totalScore}
+          onWordTap={() => {}}
         />
       </div>
 

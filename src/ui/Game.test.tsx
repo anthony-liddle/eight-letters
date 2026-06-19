@@ -116,7 +116,7 @@ describe('Game', () => {
 
   function findWord(text: string): HTMLElement {
     const glossary = screen.getByRole('region', { name: /words found/i });
-    return within(glossary).getByText(text).closest('li') as HTMLElement;
+    return within(glossary).getByText(text).closest('button') as HTMLElement;
   }
 
   it('renders an uncommon find with its mark and inline points', () => {
