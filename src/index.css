@@ -1019,6 +1019,29 @@ button {
   background: var(--discovery);
 }
 
+/* The daily share, sitting under the score it brags about. A quiet outlined
+   button, not the accent fill: the boast is the block it produces, not the
+   control. */
+.share {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+}
+.share__btn {
+  flex: none;
+  min-height: 44px;
+  padding-inline: 1.4rem;
+}
+.share__confirm {
+  margin: 0.5rem 0 0;
+  min-height: 1.1em;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.share__confirm:empty {
+  margin-top: 0;
+}
+
 .found__group {
   margin-bottom: 1.4rem;
 }

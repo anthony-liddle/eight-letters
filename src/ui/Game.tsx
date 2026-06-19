@@ -6,6 +6,7 @@ import { useGame, type GameApi } from './useGame.ts';
 import { useTheme, type Theme } from './useTheme.ts';
 import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
+import { ShareButton } from './components/ShareButton.tsx';
 import { Reveal, type QuietCategory } from './components/Reveal.tsx';
 import { HowItWorks } from './components/HowItWorks.tsx';
 import { EditionCard } from './components/EditionCard.tsx';
@@ -127,6 +128,15 @@ export function Game({ data, audio, storage }: Props) {
           found={state.found}
           totalScore={state.totalScore}
           onWordTap={onWordTap}
+          summaryExtra={
+            state.mode === 'daily' ? (
+              <ShareButton
+                puzzle={state.puzzle}
+                found={state.found}
+                date={new Date()}
+              />
+            ) : undefined
+          }
         />
       </div>
 

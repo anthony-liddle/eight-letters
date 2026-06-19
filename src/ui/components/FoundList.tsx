@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { classifyWord, scoreWord, type Puzzle } from '@/engine/index.ts';
 import { LADDER_RUNGS, RUNG_NAMES, type LadderRung } from '../rarity.ts';
 
@@ -13,6 +13,11 @@ interface Props {
   totalScore: number;
   /** Called when the player taps a found word to see its definition. */
   onWordTap: (word: string, trigger: HTMLElement) => void;
+  /**
+   * An optional control for the summary footer, the daily share among them.
+   * Lives here so it sits with the score it brags about; Endless passes none.
+   */
+  summaryExtra?: ReactNode;
 }
 
 type Category = 'source' | 'set' | LadderRung;
@@ -90,7 +95,13 @@ function pointWord(n: number): string {
   return n === 1 ? 'point' : 'points';
 }
 
-export function FoundList({ puzzle, found, totalScore, onWordTap }: Props) {
+export function FoundList({
+  puzzle,
+  found,
+  totalScore,
+  onWordTap,
+  summaryExtra,
+}: Props) {
   const groups = useMemo(() => buildGroups(puzzle, found), [puzzle, found]);
 
   const setTotal = puzzle.commonWords.size;
@@ -196,6 +207,8 @@ export function FoundList({ puzzle, found, totalScore, onWordTap }: Props) {
               </span>
             </p>
           </div>
+
+          {summaryExtra}
         </div>
       )}
 
