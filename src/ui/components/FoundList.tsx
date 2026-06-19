@@ -214,7 +214,7 @@ export function FoundList({ puzzle, found, totalScore, onWordTap }: Props) {
             </div>
             <ul className="found__words">
               {g.words.map((w) => (
-                <li key={w.word} className="found__word-item">
+                <li key={w.word} className="found__word-item" role="listitem">
                   <button
                     type="button"
                     className={`found__word found__word--${w.category}`}

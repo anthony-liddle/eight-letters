@@ -149,6 +149,7 @@ describe('FoundList word tap', () => {
     const btn = screen.getByRole('button', { name: /sea, show definition/i });
     fireEvent.click(btn);
     expect(onWordTap).toHaveBeenCalledWith('sea', btn);
+    expect(document.activeElement).toBe(btn);
   });
 
   it('exposes a non-color affordance on each word', () => {
