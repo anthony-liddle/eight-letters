@@ -10,6 +10,22 @@ import type { GameData } from '@/data/gameData.ts';
 import type { SourceEntry } from '@/data/types.ts';
 import { NullAudioEngine } from '@/audio/AudioEngine.ts';
 import { GameStorage, type KeyValueStore } from '@/persistence/storage.ts';
+import { useDefinitions } from './useDefinitions.ts';
+
+vi.mock('./useDefinitions.ts', () => ({
+  useDefinitions: vi.fn(),
+}));
+
+const getDefinition = vi.fn(async (w: string) =>
+  w === 'sea' ? 'noun. a body of salt water.' : null,
+);
+
+beforeEach(() => {
+  (useDefinitions as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    getDefinition,
+  });
+  getDefinition.mockClear();
+});
 
 const ENABLE = [
   'serenade',
@@ -695,5 +711,97 @@ describe('Controls layout', () => {
     const cute = controls().innerHTML;
 
     expect(cute).toBe(classic);
+  });
+});
+
+describe('Game word tap routing', () => {
+  function submitWord(word: string) {
+    for (const ch of word) fireEvent.keyDown(window, { key: ch });
+    fireEvent.keyDown(window, { key: 'Enter' });
+  }
+
+  function findWordButton(word: string) {
+    return screen.getByRole('button', {
+      name: new RegExp(`${word}, show definition`, 'i'),
+    });
+  }
+
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.clear();
+  });
+
+  it('LINCHPIN: tapping the source word fires no sound, no confetti, and never calls the bundle lookup', () => {
+    const audio = new NullAudioEngine();
+    const sourceSpy = vi.spyOn(audio, 'playSource');
+    const foundSpy = vi.spyOn(audio, 'playFound');
+    render(
+      <Game
+        data={fakeData()}
+        audio={audio}
+        storage={new GameStorage(fakeStore())}
+      />,
+    );
+    submitWord('serenade');
+    sourceSpy.mockClear();
+    foundSpy.mockClear();
+    fireEvent.click(findWordButton('serenade'));
+    expect(
+      screen.getByText('Borrowed from French serenade, from Italian serenata.'),
+    ).toBeInTheDocument();
+    expect(sourceSpy).not.toHaveBeenCalled();
+    expect(foundSpy).not.toHaveBeenCalled();
+    expect(getDefinition).not.toHaveBeenCalledWith('serenade');
+    expect(document.querySelector('.confetti')).toBeNull();
+  });
+
+  it('tapping an ordinary found word opens the quiet modal with its gloss', async () => {
+    render(
+      <Game
+        data={fakeData()}
+        audio={new NullAudioEngine()}
+        storage={new GameStorage(fakeStore())}
+      />,
+    );
+    submitWord('sea');
+    fireEvent.click(findWordButton('sea'));
+    expect(
+      await screen.findByText('noun. a body of salt water.'),
+    ).toBeInTheDocument();
+    expect(document.querySelector('.reveal--quiet')).not.toBeNull();
+  });
+
+  it('a word with no definition shows the exact no-definition copy', async () => {
+    render(
+      <Game
+        data={fakeData()}
+        audio={new NullAudioEngine()}
+        storage={new GameStorage(fakeStore())}
+      />,
+    );
+    submitWord('near');
+    fireEvent.click(findWordButton('near'));
+    expect(
+      await screen.findByText(
+        'No definition on hand for this one. It is still a real word you found.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('the quiet modal uses the category accent, not amber', async () => {
+    render(
+      <Game
+        data={fakeData()}
+        audio={new NullAudioEngine()}
+        storage={new GameStorage(fakeStore())}
+      />,
+    );
+    submitWord('sneer');
+    fireEvent.click(findWordButton('sneer'));
+    await screen.findByRole('dialog');
+    expect(
+      document.querySelector('.reveal--quiet.reveal--rare'),
+    ).not.toBeNull();
+    expect(document.querySelector('.reveal--source')).toBeNull();
   });
 });
