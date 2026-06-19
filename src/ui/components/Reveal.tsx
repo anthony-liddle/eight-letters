@@ -1,18 +1,32 @@
 import { useEffect, useRef } from 'react';
 import type { SourceEntry } from '@/data/types.ts';
 
-interface Props {
-  word: string;
-  entry: SourceEntry | undefined;
-  onClose: () => void;
-}
+export type QuietCategory = 'set' | 'uncommon' | 'rare' | 'mythic';
 
-export function Reveal({ word, entry, onClose }: Props) {
+type RevealProps = {
+  onClose: () => void;
+  returnFocusTo?: HTMLElement | null;
+} & (
+  | { register: 'crown'; word: string; entry: SourceEntry | undefined }
+  | {
+      register: 'quiet';
+      word: string;
+      category: QuietCategory;
+      status: 'loading' | 'ready';
+      definition: string | null;
+    }
+);
+
+const NO_DEFINITION =
+  'No definition on hand for this one. It is still a real word you found.';
+
+export function Reveal(props: RevealProps) {
+  const { onClose, returnFocusTo } = props;
   const closeRef = useRef<HTMLButtonElement>(null);
-  const restoreRef = useRef<Element | null>(null);
+  const capturedRef = useRef<Element | null>(null);
 
   useEffect(() => {
-    restoreRef.current = document.activeElement;
+    capturedRef.current = document.activeElement;
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -20,9 +34,19 @@ export function Reveal({ word, entry, onClose }: Props) {
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      if (restoreRef.current instanceof HTMLElement) restoreRef.current.focus();
+      const target =
+        returnFocusTo ??
+        (capturedRef.current instanceof HTMLElement
+          ? capturedRef.current
+          : null);
+      target?.focus();
     };
-  }, [onClose]);
+  }, [onClose, returnFocusTo]);
+
+  const className =
+    props.register === 'crown'
+      ? 'reveal'
+      : `reveal reveal--quiet reveal--${props.category}`;
 
   return (
     <div
@@ -32,27 +56,43 @@ export function Reveal({ word, entry, onClose }: Props) {
       }}
     >
       <div
-        className="reveal"
+        className={className}
         role="dialog"
         aria-modal="true"
         aria-labelledby="reveal-word"
       >
-        <p className="reveal__kicker">The word the type was cut for</p>
+        {props.register === 'crown' ? (
+          <p className="reveal__kicker">The word the type was cut for</p>
+        ) : null}
         <h2 className="reveal__word" id="reveal-word">
-          {word}
+          {props.word}
         </h2>
         <div className="reveal__sep" />
 
-        {entry?.definition && (
+        {props.register === 'crown' ? (
+          <>
+            {props.entry?.definition && (
+              <div className="reveal__section">
+                <p className="reveal__h">Definition</p>
+                <p className="reveal__def">{props.entry.definition}</p>
+              </div>
+            )}
+            {props.entry?.etymology && (
+              <div className="reveal__section">
+                <p className="reveal__h">Etymology</p>
+                <p className="reveal__ety">{props.entry.etymology}</p>
+              </div>
+            )}
+          </>
+        ) : (
           <div className="reveal__section">
-            <p className="reveal__h">Definition</p>
-            <p className="reveal__def">{entry.definition}</p>
-          </div>
-        )}
-        {entry?.etymology && (
-          <div className="reveal__section">
-            <p className="reveal__h">Etymology</p>
-            <p className="reveal__ety">{entry.etymology}</p>
+            {props.status === 'loading' ? (
+              <p className="reveal__def reveal__def--loading">Looking it up.</p>
+            ) : props.definition ? (
+              <p className="reveal__def">{props.definition}</p>
+            ) : (
+              <p className="reveal__def reveal__def--none">{NO_DEFINITION}</p>
+            )}
           </div>
         )}
 
@@ -60,7 +100,8 @@ export function Reveal({ word, entry, onClose }: Props) {
           Back to the case
         </button>
         <p className="reveal__attribution">
-          Definition and etymology from Wiktionary, CC BY-SA 4.0.
+          Definition{props.register === 'crown' ? ' and etymology' : ''} from
+          Wiktionary, CC BY-SA 4.0.
         </p>
       </div>
     </div>
