@@ -1310,6 +1310,12 @@ button {
   padding: clamp(1.5rem, 4vw, 2.4rem);
   text-align: center;
   animation: press 0.45s var(--ease);
+  /* A long entry (a big word plus a long etymology) can be taller than a short
+     phone screen. Cap to the viewport and scroll inside the card, rather than
+     centering an oversized card whose top and bottom spill off with no scroll.
+     The 2.4rem matches the backdrop's 1.2rem top and bottom padding. */
+  max-height: calc(100dvh - 2.4rem);
+  overflow-y: auto;
 }
 .reveal__kicker {
   font-size: 0.7rem;
@@ -1423,13 +1429,11 @@ button {
 }
 
 /* ---- How the Words Work (the explainer) --------------------------------- */
-/* It borrows the reveal skin (so each theme styles it for free) but its body is
-   six paragraphs, not three lines, so it must cap its height and scroll rather
-   than spill off a short screen. */
+/* It borrows the reveal skin (so each theme styles it for free), including the
+   base reveal's height cap and internal scroll, since its body is six
+   paragraphs. It only widens the card. */
 .reveal--how {
   max-width: 32rem;
-  max-height: calc(100dvh - 2.4rem);
-  overflow-y: auto;
 }
 .reveal__word--how {
   font-size: clamp(1.7rem, 6vw, 2.4rem);
