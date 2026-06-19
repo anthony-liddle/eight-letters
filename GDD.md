@@ -102,7 +102,7 @@ Tiers (Remix), by fraction of set words found:
 
 The Found the Word rung needs both the high bar and the source word. That fuses her two signatures: always getting the long word, always going Queen Bee. Edition Complete is the true ceiling, every word in the common set found. Thresholds are tunable after playtest, but Edition Complete is always 100 percent of the set.
 
-Edition Complete, the win state. When the set hits 100 percent (every common-pool word found), fire a one-time celebration. It does not end the game: input stays live and play continues for off-page finds. The progress bar fills fully with a finishing flourish, a printer's ornament or pressmark appears, and a one-time card slides in, a sibling to the source-word reveal but in ink and oxblood rather than amber, ornamental rather than a definition. A distinct, slightly grander sound, a step above the tier-up and source-word cues. No new color: completion is a typographic and ornamental event, not a sixth accent. After the moment passes, the tier label holds a quiet Edition Complete state so the achievement stays visible while she keeps playing.
+Edition Complete, the win state. When the set hits 100 percent (every common-pool word found), fire a one-time celebration. It does not end the game: input stays live and play continues for off-page finds. The progress bar fills fully with a finishing flourish, a printer's ornament or pressmark appears, and a one-time card slides in, a sibling to the source-word reveal but in ink and oxblood rather than amber, ornamental rather than a definition. A distinct, slightly grander sound, a step above the tier-up and source-word cues. No new color: completion is a typographic and ornamental event, not a sixth accent. That restraint is the letterpress register. Cute expresses the same moment in its own voice: a one-shot confetti burst of the cute motifs (peaches, hearts, stars, sparkles) with the dinosaur's hop, composed with the card and the grander sound as one beat. Both registers fire once per completed puzzle, and both respect reduced motion, where the motion is suppressed while the card and the quiet completed state remain. After the moment passes, the tier label holds a quiet Edition Complete state so the achievement stays visible while she keeps playing.
 
 ## The Glossary: The Set And The Rarity Ladder
 
@@ -146,12 +146,30 @@ Two public-domain lists, both baked in. No per-guess network call.
 
 Plurals and inflections are accepted, since they are valid ENABLE words. Proper nouns and slurs are out (ENABLE already excludes them). Minimum word length is 3, honoring the original.
 
-Build-time pipeline (a script, not runtime):
+Acquisition versus build. These are two different things, and only one of them ever touches the network.
+
+The raw lists are vendored. ENABLE and classic SCOWL v1 are frozen public-domain artifacts (ENABLE2K has not changed since 2000), so the raw lists are committed into the repo as pinned static files. The build reads them locally and never fetches them.
+
+The Wiktionary definitions are a one-time bake, not a build step. A separate acquisition script gathers definitions once, politely (reusing the existing cached, rate-limited per-word Wiktionary REST path, with a descriptive User-Agent and CC BY-SA attribution; a bulk machine-readable extract is the documented swap-in if a re-acquisition ever needs to go wider or faster), and writes the result to a committed file. Normal builds read that committed file. The acquisition reruns only when deliberately chosen, never automatically. Touching the network is a manual "refresh the data" action, not part of the build.
+
+The build is therefore fully offline and reproducible: it reads committed raw lists and a committed definitions file, and emits the runtime assets.
+
+Build steps (offline, reads committed files):
 
 1. Produce the ENABLE validation set as a compact structure (a Set, or a length-bucketed index for fast formability checks).
-2. Derive the source-word pool from SCOWL small, length 8, hand-reviewed.
-3. For each source word, pull a definition and short etymology from Wiktionary. Wiktionary is CC BY-SA, so the build must carry attribution. Bake the result to JSON.
-4. Ship ENABLE, the common-pool source (SCOWL small), SCOWL size 70 and size 95 membership sets for the rarity ladder, and the source-pool-with-etymology JSON as static assets.
+2. Derive the source-word pool from the committed SCOWL small list, length 8, hand-reviewed.
+3. Read the committed definitions and the source-word etymology. Source words keep their full definition and etymology for the reveal. Every other word formable across the daily racks carries a short definition for tappable lookups.
+4. Emit the runtime assets: ENABLE, the common-pool source (SCOWL small), the rarity bands as complements (a beyond-size-70 set and a beyond-size-95 set, not the full positive lists), the source-pool-with-etymology JSON, and the definitions assets. Classification runs by precedence (set, then size 70, then size 95, then the remainder), so the complements grade every word identically while shipping far less data. (ulna is in ENABLE and in neither beyond-band, so it resolves to Uncommon.) The SCOWL bands come from classic SCOWL (v1), not its successor ESDB, which dropped the size 95 level the Mythic rung depends on. The shipped band files are baked from v1, so the upstream rename does not affect the running game. If the bands are ever regenerated, regenerate from classic SCOWL v1, not ESDB, or the Mythic boundary moves.
+
+Storage formats. Raw source data and runtime assets are separate and do not have to match.
+
+- Word lists stay .txt, one word per line. Transparent, diffable, the format the lists ship in, fast to parse into a Set. A packed structure (a DAWG or trie) would be smaller but opaque and non-diffable, real complexity for no benefit at this scale, so skip it.
+- Source-word etymology stays JSON, since it is a few hundred rich, multi-field records.
+- The definitions map is flat TSV, one word and short definition per line, tab-separated. Compact, diffs line by line, trivial to append, which lets it share a home with the future dictionary patch layer.
+
+Loading strategy. Do not load the whole definitions map on page open. Load only what a rack needs. The scheme is per-puzzle bundles, one small file per rack, lazy-loaded from our own static assets when a puzzle starts, since every rack's formable words are known at build time. The first bake settled this against the first-letter shard alternative on measured numbers. A session loads one bundle, at most about 8 KB gzipped for the heaviest rack (ancestor), where first-letter shards would pull every letter that rack can start a word with, about 141 KB gzipped for the same rack. The bundles' combined footprint is larger (about 1.6 MB gzipped across 707 racks versus about 287 KB for 26 shards), but nothing loads the whole set, so per-session load is the metric that matters and per-puzzle wins it decisively. These are same-origin static fetches, not external calls, so the offline stance holds.
+
+Measured after the bake and a recovery pass: the formable union is 16,285 words across 707 racks, and 15,824 carry a definition (about 97 percent). Set words are at 100 percent and source words at 707 of 707, the two figures that matter most. The first bulk run came in at 80 percent, but that was throttling loss, not real absence: coverage was flat across rarity bands and common words like audience and password were missing, both signs of dropped fetches rather than missing entries. A single polite re-run with backoff and Retry-After honoring recovered 2,767 of them. The remaining 461 are the honest absence floor, concentrated in the rare band, words with no usable Wiktionary entry. They resolve to a graceful no-definition state, and the definitions TSV is appendable, so glosses can be filled in later. The short-gloss cap is 140 characters, which trims about 5 percent of glosses at a word boundary.
 
 ## Daily And Endless
 

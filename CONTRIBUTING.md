@@ -8,9 +8,12 @@ Requires Node 22 and pnpm.
 
 ```bash
 pnpm install
-pnpm data:build   # one time: fetch and bake the word lists
 pnpm dev
 ```
+
+The baked word data under `public/data` is committed, so you do not need to run
+the data pipeline to develop. See the Data pipeline section in the README if you
+are rebuilding it.
 
 ## Useful scripts
 

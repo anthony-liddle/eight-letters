@@ -17,8 +17,9 @@ This is the v1 Remix: untimed, daily, completion-driven. Built as a gift.
 - **Completion tiers, not a pass-or-fail gate.** Progress is measured against a
   curated common pool (SCOWL), so completion stays achievable. The top tier
   needs both the high bar and the source word.
-- **The source-word reveal.** Finding the eight-letter word unlocks its
-  definition and etymology, the emotional center of the game.
+- **A tappable glossary.** Every word you find is tappable for a short
+  definition. Finding the eight-letter source word unlocks its full definition
+  and etymology, the emotional center of the game.
 - **Built to be played by anyone.** Full keyboard play, screen-reader
   announcements, visible focus, reduced-motion support, and color is never the
   only signal.
@@ -29,13 +30,27 @@ This is the v1 Remix: untimed, daily, completion-driven. Built as a gift.
 
 ```bash
 pnpm install
-pnpm data:build   # fetch and bake the word lists (one time; cached after)
 pnpm dev          # start the dev server
 ```
 
-`pnpm data:build` downloads ENABLE and SCOWL and pulls definitions and
-etymologies from Wiktionary. It caches every response under `scripts/.cache`,
-so reruns are fast. The baked assets land in `public/data`.
+The baked word data lives under `public/data` and is committed, so a fresh
+clone runs without a build step. You only need the data pipeline below if you
+are rebuilding that data.
+
+## Data pipeline
+
+The word data is baked offline in three stages. The first two are manual,
+network-touching, and run by hand; their outputs are committed so the build and
+CI stay offline.
+
+- `pnpm data:vendor` downloads the raw ENABLE list and SCOWL bands into
+  `scripts/data-raw`. One time, rarely rerun.
+- `pnpm defs:acquire` fetches a short Wiktionary gloss for every formable word
+  into `scripts/data-raw/definitions.tsv`. Resumable.
+- `pnpm data:build` reads those vendored files and bakes the static assets into
+  `public/data`. It is offline except for source-word etymologies, which it
+  still fetches from Wiktionary on a cache miss and caches under
+  `scripts/.cache`.
 
 ## Scripts
 
@@ -43,7 +58,9 @@ so reruns are fast. The baked assets land in `public/data`.
 - `pnpm build` type-check and build the static site
 - `pnpm test` run the engine and persistence unit tests
 - `pnpm lint` / `pnpm format` lint and format
-- `pnpm data:build` rebuild the baked word data
+- `pnpm data:build` rebuild the baked word data from the vendored lists
+- `pnpm data:vendor` download the raw ENABLE and SCOWL lists (maintainer, one time)
+- `pnpm defs:acquire` fetch Wiktionary glosses into the definitions TSV (maintainer)
 - `pnpm icons:build` regenerate the favicons and Open Graph image from source SVGs
 
 ## Metadata and icons
@@ -53,13 +70,15 @@ The favicons and the 1200x630 Open Graph image are generated from source SVGs by
 byproducts, not hand-exported binaries: rerun `pnpm icons:build` to rebuild them.
 
 Open Graph and canonical URLs must be absolute, so the site URL is configurable
-via `VITE_SITE_URL` in `.env`, injected into `index.html` at build time. Change
-that one line when the production domain is chosen.
+via `VITE_SITE_URL` in `.env`, injected into `index.html` at build time. It
+currently points at `https://eight-letters.com`; change that one line if the
+production domain moves.
 
 ## Project structure
 
 ```
 scripts/        build-time data pipeline (ENABLE, SCOWL, Wiktionary -> JSON)
+scripts/data-raw/ vendored ENABLE, SCOWL, and definitions TSV, committed for offline builds
 src/engine/     pure, framework-free, fully unit-tested game logic
 src/data/       word-list loaders behind the engine's Dictionary interface
 src/persistence/ local storage for streak and per-day progress
@@ -74,7 +93,8 @@ Soundscape audio engine, or the timed Faithful Copy mode are all additive.
 
 ## Tech
 
-React, Vite, TypeScript (strict), pnpm. No backend.
+React, Vite, TypeScript (strict), pnpm. Deployed on Vercel as a static site,
+with privacy-light Vercel Analytics and no backend.
 
 ## Credits
 
