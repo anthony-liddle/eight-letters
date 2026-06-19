@@ -96,6 +96,25 @@ describe('Reveal quiet register', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it.each(['letterpress', 'cute'])(
+    'renders the quiet register under the %s theme',
+    (theme) => {
+      document.documentElement.dataset.theme = theme;
+      render(
+        <Reveal
+          register="quiet"
+          word="sneer"
+          category="rare"
+          status="ready"
+          definition="x"
+          onClose={() => {}}
+        />,
+      );
+      expect(screen.getByRole('dialog')).toHaveClass('reveal--quiet');
+      delete document.documentElement.dataset.theme;
+    },
+  );
+
   it('returns focus to returnFocusTo on close', () => {
     const trigger = document.createElement('button');
     document.body.appendChild(trigger);
