@@ -58,4 +58,14 @@ describe('createDefinitionLookup', () => {
     const lookup = createDefinitionLookup('missing');
     expect(await lookup.getDefinition('sea')).toBeNull();
   });
+
+  it('warms the bundle with a single fetch and serves later lookups from cache', async () => {
+    const fetchSpy = mockFetch({ audience: { sea: 'a body of salt water' } });
+    vi.stubGlobal('fetch', fetchSpy);
+    const lookup = createDefinitionLookup('audience');
+    lookup.warm();
+    await Promise.resolve();
+    expect(await lookup.getDefinition('sea')).toBe('a body of salt water');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
 });

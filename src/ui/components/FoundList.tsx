@@ -11,6 +11,8 @@ interface Props {
    * versus off-page points), which by construction sums back to this.
    */
   totalScore: number;
+  /** Called when the player taps a found word to see its definition. */
+  onWordTap: (word: string, trigger: HTMLElement) => void;
 }
 
 type Category = 'source' | 'set' | LadderRung;
@@ -88,7 +90,7 @@ function pointWord(n: number): string {
   return n === 1 ? 'point' : 'points';
 }
 
-export function FoundList({ puzzle, found, totalScore }: Props) {
+export function FoundList({ puzzle, found, totalScore, onWordTap }: Props) {
   const groups = useMemo(() => buildGroups(puzzle, found), [puzzle, found]);
 
   const setTotal = puzzle.commonWords.size;
@@ -212,23 +214,33 @@ export function FoundList({ puzzle, found, totalScore }: Props) {
             </div>
             <ul className="found__words">
               {g.words.map((w) => (
-                <li
-                  key={w.word}
-                  className={`found__word found__word--${w.category}`}
-                >
-                  <span
-                    className={`mark mark--${w.category}`}
-                    aria-hidden="true"
-                  />
-                  {w.word}
-                  {isLadder(w.category) && (
-                    <>
-                      <span className="found__points">+{w.score}</span>
-                      <span className="found__rung-note">
-                        {RUNG_NAMES[w.category].toLowerCase()}
-                      </span>
-                    </>
-                  )}
+                <li key={w.word} className="found__word-item" role="listitem">
+                  <button
+                    type="button"
+                    className={`found__word found__word--${w.category}`}
+                    aria-label={`${w.word}, show definition`}
+                    onClick={(e) => {
+                      e.currentTarget.focus();
+                      onWordTap(w.word, e.currentTarget);
+                    }}
+                  >
+                    <span
+                      className={`mark mark--${w.category}`}
+                      aria-hidden="true"
+                    />
+                    <span className="found__wordtext">{w.word}</span>
+                    {isLadder(w.category) && (
+                      <>
+                        <span className="found__points">+{w.score}</span>
+                        <span className="found__rung-note">
+                          {RUNG_NAMES[w.category].toLowerCase()}
+                        </span>
+                      </>
+                    )}
+                    <span className="found__disclosure" aria-hidden="true">
+                      +
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>

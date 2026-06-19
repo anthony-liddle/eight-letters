@@ -6,11 +6,21 @@ import { useGame, type GameApi } from './useGame.ts';
 import { useTheme, type Theme } from './useTheme.ts';
 import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
-import { Reveal } from './components/Reveal.tsx';
+import { Reveal, type QuietCategory } from './components/Reveal.tsx';
 import { HowItWorks } from './components/HowItWorks.tsx';
 import { EditionCard } from './components/EditionCard.tsx';
 import { Confetti } from './components/Confetti.tsx';
 import { Decorations } from './components/Decorations.tsx';
+import { useDefinitions } from './useDefinitions.ts';
+import { classifyWord } from '@/engine/index.ts';
+
+interface QuietState {
+  word: string;
+  category: QuietCategory;
+  status: 'loading' | 'ready';
+  definition: string | null;
+  trigger: HTMLElement | null;
+}
 
 /** Honour the OS reduced-motion setting. Confetti is pure motion, so suppress it. */
 function prefersReducedMotion(): boolean {
@@ -43,6 +53,35 @@ export function Game({ data, audio, storage }: Props) {
 
   const { state } = game;
   const [theme] = useTheme();
+
+  const { getDefinition } = useDefinitions(state.puzzle.sourceWord);
+
+  const [quiet, setQuiet] = useState<QuietState | null>(null);
+
+  const onWordTap = useCallback(
+    (word: string, trigger: HTMLElement) => {
+      if (word === state.puzzle.sourceWord) {
+        game.openReveal();
+        return;
+      }
+      const category = classifyWord(word, state.puzzle) as QuietCategory;
+      setQuiet({
+        word,
+        category,
+        status: 'loading',
+        definition: null,
+        trigger,
+      });
+      void getDefinition(word).then((definition) => {
+        setQuiet((q) =>
+          q && q.word === word ? { ...q, status: 'ready', definition } : q,
+        );
+      });
+    },
+    [game, state.puzzle, getDefinition],
+  );
+
+  const closeQuiet = useCallback(() => setQuiet(null), []);
 
   // Fire the cute confetti once, on the completion beat. The pulse increments
   // only on the completing submit, so a mode switch or a reload of an already
@@ -87,6 +126,7 @@ export function Game({ data, audio, storage }: Props) {
           puzzle={state.puzzle}
           found={state.found}
           totalScore={state.totalScore}
+          onWordTap={onWordTap}
         />
       </div>
 
@@ -101,13 +141,24 @@ export function Game({ data, audio, storage }: Props) {
 
       {confettiOn && <Confetti onDone={endConfetti} />}
 
-      {state.revealOpen && (
+      {state.revealOpen ? (
         <Reveal
+          register="crown"
           word={state.puzzle.sourceWord}
           entry={state.sourceEntry}
           onClose={game.closeReveal}
         />
-      )}
+      ) : quiet ? (
+        <Reveal
+          register="quiet"
+          word={quiet.word}
+          category={quiet.category}
+          status={quiet.status}
+          definition={quiet.definition}
+          returnFocusTo={quiet.trigger}
+          onClose={closeQuiet}
+        />
+      ) : null}
 
       {howOpen && <HowItWorks onClose={closeHow} />}
     </div>

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { FoundList } from './FoundList.tsx';
 import { scoreWord, totalScore, type Puzzle } from '@/engine/index.ts';
 
@@ -24,7 +24,12 @@ function makePuzzle(): Puzzle {
 function renderList(found: string[]) {
   const puzzle = makePuzzle();
   return render(
-    <FoundList puzzle={puzzle} found={found} totalScore={totalScore(found)} />,
+    <FoundList
+      puzzle={puzzle}
+      found={found}
+      totalScore={totalScore(found)}
+      onWordTap={() => {}}
+    />,
   );
 }
 
@@ -64,6 +69,7 @@ describe('FoundList totals summary', () => {
         puzzle={puzzle}
         found={found}
         totalScore={totalScore(found)}
+        onWordTap={() => {}}
       />,
     );
     expect(screen.getByText(/1 uncommon/i)).toBeInTheDocument();
@@ -125,5 +131,39 @@ describe('FoundList structure', () => {
     expect(
       within(legend as HTMLElement).getByText('source word'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('FoundList word tap', () => {
+  it('renders each found word as a button that reports taps with its element', () => {
+    const puzzle = makePuzzle();
+    const onWordTap = vi.fn();
+    render(
+      <FoundList
+        puzzle={puzzle}
+        found={['sea']}
+        totalScore={totalScore(['sea'])}
+        onWordTap={onWordTap}
+      />,
+    );
+    const btn = screen.getByRole('button', { name: /sea, show definition/i });
+    fireEvent.click(btn);
+    expect(onWordTap).toHaveBeenCalledWith('sea', btn);
+    expect(document.activeElement).toBe(btn);
+  });
+
+  it('exposes a non-color affordance on each word', () => {
+    const puzzle = makePuzzle();
+    const { container } = render(
+      <FoundList
+        puzzle={puzzle}
+        found={['sea']}
+        totalScore={totalScore(['sea'])}
+        onWordTap={() => {}}
+      />,
+    );
+    expect(
+      container.querySelector('.found__word .found__disclosure'),
+    ).not.toBeNull();
   });
 });

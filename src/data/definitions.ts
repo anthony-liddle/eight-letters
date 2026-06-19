@@ -5,6 +5,8 @@
 
 export interface DefinitionLookup {
   getDefinition(word: string): Promise<string | null>;
+  /** Kick the one-time bundle load early, without resolving any word. */
+  warm(): void;
 }
 
 type Bundle = Record<string, string>;
@@ -35,6 +37,9 @@ export function createDefinitionLookup(sourceWord: string): DefinitionLookup {
     return pending;
   };
   return {
+    warm(): void {
+      void load();
+    },
     async getDefinition(word: string): Promise<string | null> {
       const bundle = await load();
       return bundle[word] ?? null;

@@ -1052,11 +1052,39 @@ button {
   flex-wrap: wrap;
   gap: 0.3rem 0.75rem;
 }
+.found__word-item {
+  display: contents;
+}
 .found__word {
+  /* Button reset so the chip keeps its existing look. */
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  /* Layout */
   font-size: 1.02rem;
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
   text-transform: lowercase;
+  min-height: 44px;
+}
+.found__disclosure {
+  margin-left: auto;
+  opacity: 0.6;
+  font-style: normal;
+}
+.found__word:hover .found__wordtext,
+.found__word:focus-visible .found__wordtext {
+  text-decoration: underline;
+}
+.found__word:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 /* One mark family, told apart by SHAPE, not colour: the set is green, the source
@@ -1338,12 +1366,60 @@ button {
   font-size: 0.8rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .reveal__attribution {
   margin-top: 1rem;
   font-size: 0.64rem;
   color: var(--ink-faint);
   letter-spacing: 0.02em;
+}
+
+/* ---- Quiet register: information surface, visibly lighter than the crown --- */
+/* The quiet card is smaller and plainer so the celebration hierarchy holds.
+   No amber. Border and shadow use neutral ink. The separator accent follows
+   the word's category, reusing the same --good / --discovery tokens the mark
+   shapes already use in both themes. */
+.reveal--quiet {
+  max-width: 22rem;
+  border-color: var(--rule);
+  box-shadow:
+    0 0 0 6px var(--paper),
+    0 0 0 7px var(--rule),
+    0 16px 36px rgba(0, 0, 0, 0.25);
+}
+.reveal--quiet .reveal__word {
+  font-size: 1.4rem;
+  color: var(--ink);
+}
+.reveal--quiet .reveal__close {
+  border-color: var(--ink-soft);
+  background: var(--ink-soft);
+}
+.reveal--quiet.reveal--set .reveal__sep {
+  background: var(--good);
+}
+.reveal--quiet.reveal--uncommon .reveal__sep,
+.reveal--quiet.reveal--rare .reveal__sep,
+.reveal--quiet.reveal--mythic .reveal__sep {
+  background: var(--discovery);
+}
+.reveal__def--none,
+.reveal__def--loading {
+  opacity: 0.85;
+}
+[data-theme='cute'] .reveal--quiet {
+  border-color: var(--tile-edge);
+  box-shadow:
+    0 8px 0 var(--surface-shadow),
+    0 16px 36px rgba(255, 140, 120, 0.2);
+}
+[data-theme='cute'] .reveal--quiet .reveal__close {
+  border-color: var(--accent);
+  background: var(--accent);
 }
 
 /* ---- How the Words Work (the explainer) --------------------------------- */
