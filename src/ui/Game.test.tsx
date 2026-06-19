@@ -802,6 +802,6 @@ describe('Game word tap routing', () => {
     expect(
       document.querySelector('.reveal--quiet.reveal--rare'),
     ).not.toBeNull();
-    expect(document.querySelector('.reveal--source')).toBeNull();
+    expect(screen.queryByText('The word the type was cut for')).toBeNull();
   });
 });

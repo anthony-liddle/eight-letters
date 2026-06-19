@@ -43,7 +43,7 @@ describe('Reveal quiet register', () => {
     expect(
       container.querySelector('.reveal--quiet.reveal--rare'),
     ).not.toBeNull();
-    expect(container.querySelector('.reveal--source')).toBeNull();
+    expect(screen.queryByText('The word the type was cut for')).toBeNull();
   });
 
   it('shows the exact no-definition copy when the gloss is null', () => {
