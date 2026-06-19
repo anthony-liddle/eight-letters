@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { SourceEntry } from '@/data/types.ts';
 
 export type QuietCategory = 'set' | 'uncommon' | 'rare' | 'mythic';
@@ -22,6 +22,7 @@ const NO_DEFINITION =
 
 export function Reveal(props: RevealProps) {
   const { onClose, returnFocusTo } = props;
+  const wordId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const capturedRef = useRef<Element | null>(null);
 
@@ -59,12 +60,12 @@ export function Reveal(props: RevealProps) {
         className={className}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="reveal-word"
+        aria-labelledby={wordId}
       >
         {props.register === 'crown' ? (
           <p className="reveal__kicker">The word the type was cut for</p>
         ) : null}
-        <h2 className="reveal__word" id="reveal-word">
+        <h2 className="reveal__word" id={wordId}>
           {props.word}
         </h2>
         <div className="reveal__sep" />
@@ -88,7 +89,7 @@ export function Reveal(props: RevealProps) {
           <div className="reveal__section">
             {props.status === 'loading' ? (
               <p className="reveal__def reveal__def--loading">Looking it up.</p>
-            ) : props.definition ? (
+            ) : props.definition !== null ? (
               <p className="reveal__def">{props.definition}</p>
             ) : (
               <p className="reveal__def reveal__def--none">{NO_DEFINITION}</p>

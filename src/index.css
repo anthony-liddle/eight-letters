@@ -1385,9 +1385,6 @@ button {
     0 8px 0 var(--surface-shadow),
     0 16px 36px rgba(255, 140, 120, 0.2);
 }
-[data-theme='cute'] .reveal--quiet .reveal__word {
-  color: var(--ink);
-}
 [data-theme='cute'] .reveal--quiet .reveal__close {
   border-color: var(--accent);
   background: var(--accent);
