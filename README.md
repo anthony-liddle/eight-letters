@@ -1,6 +1,6 @@
 # 8 Letters in Search of a Word
 
-A lo-fi word game built around the quiet pleasure of finding the long word. Set
+A word game built around the quiet pleasure of finding the long word. Set
 eight metal type sorts into words, climb the completion tiers, and crown the
 puzzle by finding the eight-letter source word the type was cut for, then read
 its definition and etymology.
