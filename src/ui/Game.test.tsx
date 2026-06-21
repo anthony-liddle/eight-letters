@@ -57,7 +57,11 @@ function fakeData(): GameData {
     commonPool: createListWordSource(COMMON),
     beyond70Pool: createListWordSource(BEYOND_70),
     beyond95Pool: createListWordSource(BEYOND_95),
-    sourceWords: ['serenade'], // single-word pool: the daily is always serenade
+    // Single-word calendar: the daily is always serenade.
+    dailyCalendar: {
+      epoch: { year: 2026, month: 1, day: 1 },
+      words: ['serenade'],
+    },
     sourceEntry: (w) => (w === 'serenade' ? ENTRY : undefined),
   };
 }

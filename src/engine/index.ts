@@ -4,7 +4,14 @@ export * from './config.ts';
 export { scoreWord, totalScore } from './scoring.ts';
 export { canForm, formableFrom, letterCounts } from './formability.ts';
 export { createPuzzle } from './puzzle.ts';
+export {
+  sourceSetSize,
+  isEligibleSource,
+  eligibleSourceWords,
+} from './eligibility.ts';
+export { generateCalendar, CALENDAR_SEED } from './calendar.ts';
+export { seededPermutation } from './shuffle.ts';
 export { validateGuess, normalizeGuess } from './validate.ts';
 export { classifyWord } from './classify.ts';
 export { computeTier } from './tiers.ts';
-export { dayIndex, dailySourceWord } from './daily.ts';
+export { dayIndex, dailySourceWord, endlessSourceWord } from './daily.ts';

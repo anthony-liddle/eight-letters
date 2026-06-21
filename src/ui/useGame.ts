@@ -11,6 +11,7 @@ import {
   createPuzzle,
   dailySourceWord,
   dayIndex,
+  endlessSourceWord,
   normalizeGuess,
   STREAK_TIER_INDEX,
   totalScore,
@@ -343,8 +344,11 @@ export function useGame(
 ): GameApi {
   const makeDailyPayload = useCallback((): SlicePayload => {
     const today = new Date();
-    const idx = dayIndex(today);
-    const word = dailySourceWord(data.sourceWords, today);
+    // Single-source the epoch: both the storage day key and the calendar lookup
+    // read calendar.epoch, so they can never desync.
+    const { epoch, words } = data.dailyCalendar;
+    const idx = dayIndex(today, epoch);
+    const word = dailySourceWord(words, today, epoch);
     return {
       puzzle: createPuzzle(
         word,
@@ -376,8 +380,9 @@ export function useGame(
   );
 
   const freshEndlessSlice = useCallback((): Slice => {
-    const word =
-      data.sourceWords[Math.floor(Math.random() * data.sourceWords.length)]!;
+    // Endless draws from the same eligible calendar words as the daily, so a
+    // sub-floor word never headlines endless either.
+    const word = endlessSourceWord(data.dailyCalendar.words);
     return buildSlice(endlessPayload(word, []));
   }, [data, endlessPayload]);
 
