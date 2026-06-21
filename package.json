@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "data:vendor": "tsx scripts/vendor-lists.ts",
     "data:build": "tsx scripts/build-data.ts",
+    "data:calendar": "tsx scripts/build-calendar.ts",
     "defs:acquire": "tsx scripts/acquire-definitions.ts",
     "icons:build": "tsx scripts/build-icons.ts",
     "prepare": "husky || true"

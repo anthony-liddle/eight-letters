@@ -18,7 +18,10 @@ function fakeData(): GameData {
     commonPool: createListWordSource(COMMON),
     beyond70Pool: createListWordSource(['sane']),
     beyond95Pool: createListWordSource([]),
-    sourceWords: ['serenade'],
+    dailyCalendar: {
+      epoch: { year: 2026, month: 1, day: 1 },
+      words: ['serenade'],
+    },
     sourceEntry: () => undefined,
   };
 }

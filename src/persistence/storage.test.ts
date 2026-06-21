@@ -93,6 +93,32 @@ describe('GameStorage streak', () => {
   });
 });
 
+describe('GameStorage migration: calendar reshuffle preserves play history', () => {
+  let storage: GameStorage;
+  beforeEach(() => {
+    storage = new GameStorage(fakeStore());
+  });
+
+  // The frozen-calendar migration may re-date a day to a different word. The
+  // streak must be keyed to the date, not the word, so a finished day is never
+  // read as unfinished. This guards that invariant.
+  it('keeps a cleared day cleared and the streak intact when the word changes', () => {
+    // Before the reshuffle: day 5 cleared, found words saved under the old word.
+    storage.saveDayProgress(5, 'oldcrown', ['cat', 'cot']);
+    storage.recordDailyCleared(5);
+    expect(storage.currentStreak(5)).toBe(1);
+
+    // The reshuffle changes day 5's word. The streak is keyed to the date, so it
+    // is unaffected, and the next day continues it.
+    storage.recordDailyCleared(6);
+    expect(storage.currentStreak(6)).toBe(2);
+
+    // The only visible effect: progress was word-keyed, so the new word starts
+    // fresh. The day offers its new word once.
+    expect(storage.loadDayProgress(5, 'newcrown')).toEqual([]);
+  });
+});
+
 describe('GameStorage resilience', () => {
   it('does not throw when the underlying store rejects a write', () => {
     const throwingStore: KeyValueStore = {

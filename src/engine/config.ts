@@ -11,6 +11,16 @@ export const MIN_WORD_LENGTH = 3;
 export const SOURCE_WORD_LENGTH = 8;
 
 /**
+ * Minimum set size for a source word to headline a puzzle. Crown-inclusive: the
+ * same "X of Y" count the completion counter shows, which includes the source
+ * word itself when the crown is a set word (it always is for an eligible crown).
+ * A daily under this floor felt thin, so sub-floor words stay real words found
+ * inside other racks but never headline a day. See scripts/build-calendar.ts and
+ * src/engine/eligibility.ts, both of which compute the count via createPuzzle.
+ */
+export const MIN_SET_SIZE = 15;
+
+/**
  * Points by word length. Index by length; lengths below the minimum score 0.
  * 3=1, 4=3, 5=5, 6=7, 7=11, 8=15.
  */

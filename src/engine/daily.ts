@@ -1,4 +1,5 @@
 import { DAILY_EPOCH } from './config.ts';
+import { seededPermutation } from './shuffle.ts';
 
 interface EpochDate {
   readonly year: number;
@@ -20,47 +21,63 @@ export function dayIndex(date: Date, epoch: EpochDate = DAILY_EPOCH): number {
   return Math.floor((today - start) / 86_400_000);
 }
 
-/** Deterministic PRNG. Same seed, same stream. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
-  };
+/** A well-distributed seed for a reshuffled cycle. Cycle 0 never reaches here. */
+function seedForCycle(cycle: number): number {
+  return (cycle * 0x9e3779b1) >>> 0;
 }
 
-/** A fresh seeded Fisher-Yates permutation of [0, n). Pure in n and seed. */
-function seededPermutation(n: number, seed: number): number[] {
-  const rng = mulberry32(seed);
-  const order = Array.from({ length: n }, (_, i) => i);
-  for (let i = n - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [order[i], order[j]] = [order[j]!, order[i]!];
+/**
+ * The index order for a cycle over a calendar of n words.
+ *
+ * Cycle 0 is the committed calendar order itself (identity), so the first pass
+ * plays the frozen sequence exactly as generated. Every later cycle is a fresh
+ * deterministic permutation, and its first word is forced to differ from the
+ * previous cycle's last word so no word repeats across a cycle boundary.
+ */
+function cycleOrder(cycle: number, n: number): number[] {
+  if (cycle === 0) return Array.from({ length: n }, (_, i) => i);
+  const order = seededPermutation(n, seedForCycle(cycle));
+  if (n < 2) return order;
+  const prevLast = cycleOrder(cycle - 1, n)[n - 1]!;
+  if (order[0] === prevLast) {
+    [order[0], order[1]] = [order[1]!, order[0]!];
   }
   return order;
 }
 
 /**
- * The source word for a given day.
+ * The source word for a given day, read from the frozen daily calendar.
  *
- * The day index splits into a cycle and a position. Each cycle is a fresh
- * deterministic shuffle of the whole pool, so the sequence never repeats a word
- * until the pool is exhausted, then reshuffles for the next pass.
+ * The day index splits into a cycle and a position. The first cycle is the
+ * calendar in its committed order; once exhausted, each later cycle is a fresh
+ * deterministic shuffle, so the sequence never repeats a word within a pass and
+ * never repeats across a pass boundary. Appending words to the calendar leaves
+ * every first-cycle day fixed, which is the whole point of the freeze.
  */
 export function dailySourceWord(
-  pool: readonly string[],
+  calendar: readonly string[],
   date: Date,
   epoch: EpochDate = DAILY_EPOCH,
 ): string {
-  if (pool.length === 0) throw new Error('Source pool is empty.');
+  if (calendar.length === 0) throw new Error('Daily calendar is empty.');
   const index = dayIndex(date, epoch);
   // Guard against pre-epoch dates by flooring at cycle/position 0.
   const safeIndex = Math.max(0, index);
-  const cycle = Math.floor(safeIndex / pool.length);
-  const position = safeIndex % pool.length;
-  const permutation = seededPermutation(pool.length, cycle + 1);
-  return pool[permutation[position]!]!;
+  const n = calendar.length;
+  const cycle = Math.floor(safeIndex / n);
+  const position = safeIndex % n;
+  return calendar[cycleOrder(cycle, n)[position]!]!;
+}
+
+/**
+ * A random source word for endless play, drawn from the same eligible calendar
+ * as the daily. Because the calendar holds only words that clear MIN_SET_SIZE, a
+ * sub-floor word can never headline endless. The rng is injectable for testing.
+ */
+export function endlessSourceWord(
+  calendar: readonly string[],
+  rng: () => number = Math.random,
+): string {
+  if (calendar.length === 0) throw new Error('Daily calendar is empty.');
+  return calendar[Math.floor(rng() * calendar.length)]!;
 }
