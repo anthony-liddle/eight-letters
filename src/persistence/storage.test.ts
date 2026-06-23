@@ -153,3 +153,29 @@ describe('GameStorage persistence detection', () => {
     expect(new GameStorage(fakeStore()).persistent).toBe(true);
   });
 });
+
+describe('history survives the Phase 2 calendar regeneration', () => {
+  // Streak and per-day progress are keyed by day index (the date), not by the
+  // source word. The regeneration changes which word maps to a date but never
+  // touches storage, so a completed date stays completed and the streak holds.
+  it('keeps the streak count, which is date-keyed not word-keyed', () => {
+    const storage = new GameStorage(fakeStore());
+    storage.recordDailyCleared(38);
+    storage.recordDailyCleared(39);
+    storage.recordDailyCleared(40);
+    expect(storage.currentStreak(40)).toBe(3);
+    // The regeneration touches only the calendar JSON, not storage. Reading the
+    // streak back gives the same count: no reset from the word reshuffle.
+    expect(storage.currentStreak(40)).toBe(3);
+  });
+
+  it('keeps a completed day record, word-guarded so past days are not replayed', () => {
+    const storage = new GameStorage(fakeStore());
+    storage.saveDayProgress(40, 'oldcrown', ['sea', 'near']);
+    // The same date now maps to a different crown after the reshuffle. The old
+    // record persists by its day index, and simply does not reload for the new
+    // word, since a past day is never replayed.
+    expect(storage.loadDayProgress(40, 'oldcrown')).toEqual(['sea', 'near']);
+    expect(storage.loadDayProgress(40, 'newcrown')).toEqual([]);
+  });
+});

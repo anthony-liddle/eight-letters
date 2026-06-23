@@ -13,6 +13,7 @@ import {
   dayIndex,
   endlessSourceWord,
   normalizeGuess,
+  STORAGE_EPOCH,
   STREAK_TIER_INDEX,
   totalScore,
   validateGuess,
@@ -344,10 +345,12 @@ export function useGame(
 ): GameApi {
   const makeDailyPayload = useCallback((): SlicePayload => {
     const today = new Date();
-    // Single-source the epoch: both the storage day key and the calendar lookup
-    // read calendar.epoch, so they can never desync.
+    // Two epochs on purpose. The crown is selected from the calendar's movable
+    // epoch (re-anchored by a regeneration), but the storage and streak key is
+    // days since the fixed STORAGE_EPOCH, so re-anchoring the calendar never
+    // shifts day keys and a streak survives a regeneration with no migration.
     const { epoch, words } = data.dailyCalendar;
-    const idx = dayIndex(today, epoch);
+    const idx = dayIndex(today, STORAGE_EPOCH);
     const word = dailySourceWord(words, today, epoch);
     return {
       puzzle: createPuzzle(

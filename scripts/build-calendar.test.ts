@@ -13,6 +13,14 @@ import {
 } from '@/engine/index.ts';
 import type { SourceEntry } from '@/data/types.ts';
 import type { Dictionary, WordSource } from '@/engine/types.ts';
+import { parseExclusions } from './lib/exclusions.ts';
+
+const EXCLUSIONS = parseExclusions(
+  readFileSync(
+    join(import.meta.dirname, 'data-raw', 'source-exclusions.tsv'),
+    'utf8',
+  ),
+);
 
 /**
  * Real-data checks against the baked assets. These prove eligibility is wired up
@@ -74,19 +82,47 @@ describe('eligibility against the real baked data', () => {
   });
 });
 
-describe('the generated calendar', () => {
-  it('first run contains exactly the eligible words, no sub-floor', () => {
-    const calendar = generateCalendar(eligible, []);
-    expect([...calendar].sort()).toEqual([...eligible].sort());
-    expect(calendar).not.toContain('aardvark');
-    expect(calendar).not.toContain('remember');
+describe('the culled, regenerated calendar', () => {
+  // The crown pool is the eligible words minus the source-word exclusion list.
+  // Computed inside each test, since `eligible` is filled in beforeAll.
+  const culledWords = () => eligible.filter((w) => !EXCLUSIONS.has(w));
+
+  it('drops exactly the excluded words from the eligible pool', () => {
+    // 582 eligible minus 38 exclusions = 544 clean crowns.
+    expect(eligible.length).toBe(582);
+    expect(culledWords().length).toBe(544);
   });
 
-  it('matches the committed daily-calendar.json', () => {
+  it('first run contains exactly the culled words, no excluded word', () => {
+    const culled = culledWords();
+    const calendar = generateCalendar(culled, []);
+    expect([...calendar].sort()).toEqual([...culled].sort());
+    for (const w of calendar) expect(EXCLUSIONS.has(w)).toBe(false);
+  });
+
+  it('matches the committed daily-calendar.json, re-anchored', () => {
     const committed = JSON.parse(
       readFileSync(join(DATA, 'daily-calendar.json'), 'utf8'),
-    ) as { epoch: unknown; words: string[] };
-    expect(committed.words.length).toBe(582);
-    expect([...committed.words].sort()).toEqual([...eligible].sort());
+    ) as {
+      epoch: { year: number; month: number; day: number };
+      words: string[];
+    };
+    expect(committed.words.length).toBe(544);
+    expect([...committed.words].sort()).toEqual([...culledWords()].sort());
+    expect(committed.epoch).toEqual({ year: 2026, month: 6, day: 23 });
+  });
+
+  it('every committed crown is clean, and the floor holds on a sample', () => {
+    const committed = JSON.parse(
+      readFileSync(join(DATA, 'daily-calendar.json'), 'utf8'),
+    ) as { words: string[] };
+    // No excluded word slipped through (cheap set lookup over all 544).
+    for (const w of committed.words) expect(EXCLUSIONS.has(w)).toBe(false);
+    // The floor is guaranteed by eligibleSourceWords, which the build uses; a
+    // spaced sample re-checks it through createPuzzle without the full sweep.
+    const step = Math.floor(committed.words.length / 15);
+    for (let i = 0; i < committed.words.length; i += step) {
+      expect(setSize(committed.words[i]!)).toBeGreaterThanOrEqual(MIN_SET_SIZE);
+    }
   });
 });
