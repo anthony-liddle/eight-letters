@@ -1,5 +1,6 @@
 import type { Dictionary, WordSource } from '@/engine/types.ts';
 import { createListDictionary, createListWordSource } from './listSource.ts';
+import { applyPatch, parsePatch } from './patch.ts';
 import type { SourceEntry } from './types.ts';
 
 /** The local calendar epoch baked into the daily calendar. */
@@ -65,6 +66,7 @@ export async function loadGameData(): Promise<GameData> {
     beyond95Text,
     sourceJson,
     calendarJson,
+    patchText,
   ] = await Promise.all([
     fetchText('enable.txt'),
     fetchText('common-pool.txt'),
@@ -72,12 +74,26 @@ export async function loadGameData(): Promise<GameData> {
     fetchText('beyond-size-95.txt'),
     fetchText('source-pool.json'),
     fetchText('daily-calendar.json'),
+    fetchText('dictionary-patch.tsv'),
   ]);
 
-  const dictionary = createListDictionary(parseWordList(enableText));
-  const commonPool = createListWordSource(parseWordList(commonText));
-  const beyond70Pool = createListWordSource(parseWordList(beyond70Text));
-  const beyond95Pool = createListWordSource(parseWordList(beyond95Text));
+  // Apply the curated patch on top of the baked lists before they back the
+  // engine. The allowlist joins validation and its band; the denylist is
+  // removed. Everything downstream sees one merged set of lists.
+  const lists = applyPatch(
+    {
+      enable: parseWordList(enableText),
+      common: parseWordList(commonText),
+      beyond70: parseWordList(beyond70Text),
+      beyond95: parseWordList(beyond95Text),
+    },
+    parsePatch(patchText),
+  );
+
+  const dictionary = createListDictionary(lists.enable);
+  const commonPool = createListWordSource(lists.common);
+  const beyond70Pool = createListWordSource(lists.beyond70);
+  const beyond95Pool = createListWordSource(lists.beyond95);
 
   const entries = JSON.parse(sourceJson) as SourceEntry[];
   const byWord = new Map(entries.map((e) => [e.word, e]));
