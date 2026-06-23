@@ -120,7 +120,7 @@ export function Game({ data, audio, storage }: Props) {
           >
             {state.message?.text ?? ' '}
           </p>
-          <TierMeter tier={state.tier} totalScore={state.totalScore} />
+          <TierMeter tier={state.tier} theme={theme} />
         </div>
 
         <FoundList

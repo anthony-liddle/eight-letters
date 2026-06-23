@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import { classifyWord, scoreWord, type Puzzle } from '@/engine/index.ts';
+import { classifyWord, findScore, type Puzzle } from '@/engine/index.ts';
 import { LADDER_RUNGS, RUNG_NAMES, type LadderRung } from '../rarity.ts';
 
 interface Props {
@@ -53,10 +53,12 @@ function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
   const foundByLen = new Map<number, Word[]>();
   for (const word of found) {
     const list = foundByLen.get(word.length) ?? [];
+    // Score by the single rarity-aware path, so an off-page word's inline +N
+    // shows the bonus Bea earned, matching the bar and the total.
     list.push({
       word,
       category: categorize(word, puzzle),
-      score: scoreWord(word),
+      score: findScore(word, classifyWord(word, puzzle)),
     });
     foundByLen.set(word.length, list);
   }
@@ -128,7 +130,7 @@ export function FoundList({
   const setPoints = useMemo(() => {
     let sum = 0;
     for (const w of found) {
-      if (puzzle.commonWords.has(w)) sum += scoreWord(w);
+      if (puzzle.commonWords.has(w)) sum += findScore(w, 'set');
     }
     return sum;
   }, [found, puzzle]);

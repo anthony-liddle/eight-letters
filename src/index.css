@@ -795,16 +795,6 @@ button {
   font-weight: 600;
   font-size: 1.15rem;
 }
-.tier__label.is-crown {
-  color: var(--crown-deep);
-}
-.tier__label.is-edition {
-  color: var(--accent); /* oxblood, not amber: completion is its own moment */
-}
-.tier__pressmark {
-  margin-right: 0.35em;
-  color: var(--accent);
-}
 .tier__score {
   font-size: 0.82rem;
   color: var(--ink-soft);
@@ -818,64 +808,38 @@ button {
   background: var(--paper-deep);
   overflow: hidden;
 }
-.tier__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: repeating-linear-gradient(
-    45deg,
-    var(--ink),
-    var(--ink) 6px,
-    #2f291f 6px,
-    #2f291f 12px
-  );
-  transition: width 0.5s var(--ease);
-}
-.tier__fill.is-crown {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--crown),
-    var(--crown) 6px,
-    var(--crown-deep) 6px,
-    var(--crown-deep) 12px
-  );
-}
-/* Edition Complete: ink and oxblood stripes, with a one-pass finishing sweep. */
-.tier__fill.is-edition {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--ink),
-    var(--ink) 6px,
-    var(--accent-deep) 6px,
-    var(--accent-deep) 12px
-  );
-}
-.tier__fill.is-edition::after {
-  content: '';
+/* The points climb: three flex segments fill the track. Set points in the
+   on-page green, off-page points in the discovery ink, then a transparent
+   remainder. Set plus off-page is the score, so the coloured fill is exactly the
+   fraction of reachable reached, and the bar reads two-tone by where the points
+   came from, the split Bea loves. */
+.tier__segs {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 250, 240, 0.55),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: sweep 0.9s var(--ease) 1;
+  display: flex;
 }
-@keyframes sweep {
-  to {
-    transform: translateX(100%);
-  }
+.tier__seg {
+  display: block;
+  min-width: 0;
+  transition: flex-grow 0.5s var(--ease);
 }
-/* Cute fills are solid, not letterpress stripes. */
-[data-theme='cute'] .tier__fill {
-  background: var(--accent);
+.tier__seg--set {
+  background: var(--good);
 }
-[data-theme='cute'] .tier__fill.is-crown {
-  background: var(--crown);
+.tier__seg--offpage {
+  background: var(--discovery);
 }
-[data-theme='cute'] .tier__fill.is-edition {
-  background: var(--accent);
+.tier__seg--rest {
+  background: transparent;
+}
+/* Named-rank threshold markers along the track. */
+.tier__tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.35;
 }
 .tier__ticks {
   display: flex;

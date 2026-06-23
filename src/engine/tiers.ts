@@ -1,50 +1,62 @@
 import { TIERS } from './config.ts';
+import { classifyWord } from './classify.ts';
+import { findScore } from './scoring.ts';
 import type { Puzzle, TierStanding } from './types.ts';
 
 /**
- * Compute the tier standing from the set of found words.
+ * Compute the standing on the named points ladder.
  *
- * Completion is word-count based: set words found over total set words. Off-page
- * finds feed the score, never the bar, so they change neither the numerator nor
- * the denominator here. The bar and the "X of Y" counter read the same two
- * numbers, so they can never disagree. The top rung requires both the high
- * fraction and the day's source word.
+ * The rank is score (length plus rarity bonuses) as a fraction of the rack's
+ * reachable score, so every find moves it up and rarity pays more. There is no
+ * set gate and no source-word gate: the old set-fraction goal that walled a
+ * player at "X of Y" is gone. setFound and setTotal are still tallied, but only
+ * for the existing Edition-complete celebration, never to grade the ladder.
  */
 export function computeTier(
   found: ReadonlySet<string>,
   puzzle: Puzzle,
 ): TierStanding {
-  const setTotal = puzzle.commonWords.size;
+  let score = 0;
+  let setPoints = 0;
+  let offPagePoints = 0;
   let setFound = 0;
   for (const word of found) {
-    if (puzzle.commonWords.has(word)) setFound += 1;
+    const rung = classifyWord(word, puzzle);
+    const points = findScore(word, rung);
+    score += points;
+    if (rung === 'set') {
+      setPoints += points;
+      setFound += 1;
+    } else {
+      offPagePoints += points;
+    }
   }
 
-  const fraction = setTotal > 0 ? setFound / setTotal : 0;
-  const sourceFound = found.has(puzzle.sourceWord);
+  const reachable = puzzle.reachableScore;
+  const fraction = reachable > 0 ? score / reachable : 0;
 
-  // Highest rung whose threshold is met and whose source-word gate is satisfied.
+  // Highest rank whose threshold the fraction meets.
   let index = 0;
   for (let i = 0; i < TIERS.length; i++) {
-    const tier = TIERS[i]!;
-    const meetsThreshold = fraction >= tier.threshold;
-    const meetsGate = !tier.requiresSourceWord || sourceFound;
-    if (meetsThreshold && meetsGate) index = i;
+    if (fraction >= TIERS[i]!.threshold) index = i;
   }
 
   const current = TIERS[index]!;
   const nextDef = TIERS[index + 1];
   const next = nextDef
-    ? { id: nextDef.id, label: nextDef.label, threshold: nextDef.threshold }
+    ? { index: index + 1, threshold: nextDef.threshold }
     : null;
 
   return {
     index,
     id: current.id,
-    label: current.label,
+    score,
+    reachable,
     fraction,
+    setPoints,
+    offPagePoints,
     setFound,
-    setTotal,
+    setTotal: puzzle.commonWords.size,
     next,
     isTop: index === TIERS.length - 1,
   };

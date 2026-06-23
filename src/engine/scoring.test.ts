@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scoreWord, totalScore } from './scoring.ts';
+import { findScore, scoreWord, totalScore } from './scoring.ts';
 
 describe('scoreWord', () => {
   it('follows the GDD curve: 3=1, 4=3, 5=5, 6=7, 7=11, 8=15', () => {
@@ -20,5 +20,17 @@ describe('scoreWord', () => {
 describe('totalScore', () => {
   it('sums a set of words', () => {
     expect(totalScore(['cat', 'cats', 'serenade'])).toBe(1 + 3 + 15);
+  });
+});
+
+describe('findScore', () => {
+  it('adds the rarity bonus on top of the length curve, none for a set word', () => {
+    // A set word is the on-page baseline: length only, no bonus.
+    expect(findScore('cat', 'set')).toBe(1);
+    expect(findScore('serenade', 'set')).toBe(15);
+    // Off-page finds pay more: length plus the draft rung bonus (1 / 2 / 4).
+    expect(findScore('cat', 'uncommon')).toBe(1 + 1);
+    expect(findScore('scale', 'rare')).toBe(5 + 2);
+    expect(findScore('scaled', 'mythic')).toBe(7 + 4);
   });
 });

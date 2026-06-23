@@ -1,6 +1,6 @@
 import { classifyWord } from './classify.ts';
 import { MIN_WORD_LENGTH } from './config.ts';
-import { scoreWord } from './scoring.ts';
+import { findScore } from './scoring.ts';
 import type { GuessResult, Puzzle } from './types.ts';
 
 /** Normalize raw input to the canonical form used everywhere: lowercase a-z. */
@@ -26,11 +26,12 @@ export function validateGuess(
   if (!puzzle.validationWords.has(word)) return { kind: 'not-a-word' };
   if (found.has(word)) return { kind: 'already-found' };
 
+  const rung = classifyWord(word, puzzle);
   return {
     kind: 'valid',
     word,
-    score: scoreWord(word),
-    rung: classifyWord(word, puzzle),
+    score: findScore(word, rung),
+    rung,
     isSourceWord: word === puzzle.sourceWord,
   };
 }

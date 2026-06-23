@@ -15,7 +15,6 @@ import {
   normalizeGuess,
   STORAGE_EPOCH,
   STREAK_TIER_INDEX,
-  totalScore,
   validateGuess,
   type GuessResult,
   type Puzzle,
@@ -129,10 +128,10 @@ function buildSlice(payload: SlicePayload): Slice {
     found,
     foundSet: new Set(found),
     tier,
-    // The score is its own meter: the sum of every find by length, set and
-    // off-page alike. The completion bar measures only the set; the score
-    // measures everything found.
-    totalScore: totalScore(found),
+    // The score is the points ladder's numerator: every find by length plus its
+    // rarity bonus, set and off-page alike. Single-sourced from the tier so the
+    // bar, the label, and this readout can never disagree.
+    totalScore: tier.score,
     sourceRevealed: found.includes(payload.puzzle.sourceWord),
     revealOpen: false,
     // Rehydrated games never reopen the card; it fires only on the live moment.
@@ -205,8 +204,12 @@ function reduceSlice(slice: Slice, action: Action): Slice {
       const foundSet = new Set(found);
       const tier = computeTier(foundSet, slice.puzzle);
       const justRevealed = result.isSourceWord && !slice.sourceRevealed;
-      // The set just reached 100 percent. Non-terminal: play continues.
-      const justComplete = slice.tier.fraction < 1 && tier.fraction >= 1;
+      // Edition Complete stays a set-completion event (every set word found),
+      // decoupled from the points ladder. Non-terminal: play continues. Stage 2
+      // retargets this to the true-completion crown.
+      const justComplete =
+        slice.tier.setFound < slice.tier.setTotal &&
+        tier.setFound >= tier.setTotal;
 
       const points = `${result.score} ${result.score === 1 ? 'point' : 'points'}`;
       // The screen reader hears the rung on every off-page find ("Rare find: ...").
@@ -215,9 +218,10 @@ function reduceSlice(slice: Slice, action: Action): Slice {
         : result.rung === 'set'
           ? `${result.word}, ${points}.`
           : `${RUNG_NAMES[result.rung]} find: ${result.word}, ${points}.`;
+      // Rank name is theme-skinned in the view; the spoken cue stays generic.
       const announceText = justComplete
         ? `${base} Edition complete. Every word in the set found.`
-        : base + (tier.index > slice.tier.index ? ` ${tier.label}.` : '');
+        : base + (tier.index > slice.tier.index ? ' New rank.' : '');
 
       const messageText = result.isSourceWord
         ? 'You found the source word.'
@@ -231,7 +235,7 @@ function reduceSlice(slice: Slice, action: Action): Slice {
         found,
         foundSet,
         tier,
-        totalScore: totalScore(found),
+        totalScore: tier.score,
         sourceRevealed: slice.sourceRevealed || result.isSourceWord,
         revealOpen: justRevealed ? true : slice.revealOpen,
         editionOpen: justComplete ? true : slice.editionOpen,
@@ -279,7 +283,7 @@ function reduceSlice(slice: Slice, action: Action): Slice {
         found: words,
         foundSet,
         tier,
-        totalScore: totalScore(words),
+        totalScore: tier.score,
         sourceRevealed: words.includes(source),
         revealOpen,
         editionOpen,

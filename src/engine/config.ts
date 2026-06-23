@@ -3,6 +3,7 @@
  * constants, not scattered literals: the scoring curve, the tier ladder, the
  * daily epoch. Change them in one place.
  */
+import type { Rung } from './types.ts';
 
 /** Minimum playable word length, honoring the original game. */
 export const MIN_WORD_LENGTH = 3;
@@ -38,65 +39,46 @@ export function scoreForLength(length: number): number {
   return SCORE_BY_LENGTH[length] ?? (length > SOURCE_WORD_LENGTH ? 15 : 0);
 }
 
-/** A rung on the completion ladder. */
+/**
+ * DRAFT, TUNABLE. The rarity bonus added on top of the length score for an
+ * off-page find, by rung. A set word is the on-page baseline and carries no
+ * bonus. These pay for the discovery Bea loves, but stay modest because the
+ * ladder denominator is the set points (a small, stable scale): measured on real
+ * racks, a bonus of 3/6/12 let four off-page hits top the ladder while the common
+ * words sat untouched, so these are tuned down to keep the guardrail honest
+ * (topping needs roughly 7 to 21 off-page finds, breadth still matters). Tune
+ * after Bea plays; this is the one place to change them.
+ */
+export const RARITY_BONUS: Readonly<Record<Rung, number>> = {
+  set: 0,
+  uncommon: 1,
+  rare: 2,
+  mythic: 4,
+};
+
+/** A rung on the named points ladder. Names are theme-skinned in the UI. */
 export interface TierDef {
+  /** Theme-neutral id; the displayed name is a per-theme skin over the index. */
   readonly id: string;
-  readonly label: string;
-  /** Fraction of the common-pool total needed to reach this tier (0 to 1). */
+  /** Fraction of the rack's reachable score needed to reach this rank (0 to 1). */
   readonly threshold: number;
-  /** The top rung also requires the day's source word to be found. */
-  readonly requiresSourceWord: boolean;
 }
 
 /**
- * Tiers by fraction of the common-pool total, low to high. The top rung fuses
- * Bea's two signatures: the high bar plus the long word. Thresholds are tunable.
+ * The named ladder: six ranks by score as a fraction of the rack's reachable
+ * score, low to high. DRAFT, TUNABLE thresholds. The top named rank sits at 0.80,
+ * not 1.00: finding everything is the completion peak (Stage 2), which sits above
+ * this whole ladder. There is no source-word gate on the named ranks; the crown
+ * is its own separate moment. The per-theme names live in ui/tierNames.ts, keyed
+ * to these six rungs by index, so the ladder structure and the names are separate.
  */
 export const TIERS: readonly TierDef[] = [
-  {
-    id: 'blank-page',
-    label: 'Blank Page',
-    threshold: 0,
-    requiresSourceWord: false,
-  },
-  {
-    id: 'a-few-words',
-    label: 'A Few Words',
-    threshold: 0.08,
-    requiresSourceWord: false,
-  },
-  {
-    id: 'warming-up',
-    label: 'Warming Up',
-    threshold: 0.22,
-    requiresSourceWord: false,
-  },
-  {
-    id: 'in-the-flow',
-    label: 'In the Flow',
-    threshold: 0.4,
-    requiresSourceWord: false,
-  },
-  {
-    id: 'word-hoard',
-    label: 'Word Hoard',
-    threshold: 0.6,
-    requiresSourceWord: false,
-  },
-  {
-    id: 'found-the-word',
-    label: 'Found the Word',
-    threshold: 0.85,
-    requiresSourceWord: true,
-  },
-  {
-    // The crown above the crown: every word in the set found. Reaching 1.00
-    // means the source word is among them, so the gate is met automatically.
-    id: 'edition-complete',
-    label: 'Edition Complete',
-    threshold: 1,
-    requiresSourceWord: true,
-  },
+  { id: 'tier-0', threshold: 0 },
+  { id: 'tier-1', threshold: 0.08 },
+  { id: 'tier-2', threshold: 0.22 },
+  { id: 'tier-3', threshold: 0.4 },
+  { id: 'tier-4', threshold: 0.6 },
+  { id: 'tier-5', threshold: 0.8 },
 ];
 
 /**
@@ -115,5 +97,9 @@ export const DAILY_EPOCH = { year: 2026, month: 6, day: 23 } as const;
  */
 export const STORAGE_EPOCH = { year: 2026, month: 1, day: 1 } as const;
 
-/** Tier a daily must reach to count toward the streak. "In the Flow" and up. */
+/**
+ * Named-ladder rank a daily must reach to count toward the streak. Index 3 is
+ * the 0.40 rung of the six-rank points ladder (the old "In the Flow" bar), a
+ * sensible "this day counts" mark. Tied to the ladder, so revisit if TIERS change.
+ */
 export const STREAK_TIER_INDEX = 3;
