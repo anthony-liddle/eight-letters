@@ -19,7 +19,7 @@ import {
   shapeDefinition,
 } from './lib/definitions.ts';
 import { formableUnion } from './lib/formable.ts';
-import { loadEnable } from './lib/sources.ts';
+import { loadValidation } from './lib/sources.ts';
 import { ASSET_DIR, DATA_RAW_DIR, mapWithConcurrency } from './lib/util.ts';
 import { fetchDefinitionJson } from './lib/wiktionary.ts';
 
@@ -46,12 +46,12 @@ async function flush(defs: Map<string, string>): Promise<void> {
 
 async function main(): Promise<void> {
   console.log('Acquiring definitions (manual, network).');
-  const [enable, sourceWords, existing] = await Promise.all([
-    loadEnable(),
+  const [validation, sourceWords, existing] = await Promise.all([
+    loadValidation(),
     loadSourceWords(),
     loadExisting(),
   ]);
-  const union = formableUnion(sourceWords, enable);
+  const union = formableUnion(sourceWords, validation);
   const todo = union.filter((w) => !existing.has(w));
   console.log(
     `  Union ${union.length.toLocaleString()} words, ` +

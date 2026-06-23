@@ -37,6 +37,7 @@ import {
   loadEnable,
   loadScowlWords,
   loadSourceCandidates,
+  loadValidation,
 } from './lib/sources.ts';
 import { enrichWord, type WordEntry } from './lib/wiktionary.ts';
 import {
@@ -157,10 +158,14 @@ async function main(): Promise<void> {
   );
 
   console.log('Definitions: emitting per-puzzle bundles.');
+  // Bundles are built over the full validation boundary, so an allowlisted
+  // modern word (app, podcast) reaches the racks that can spell it and a
+  // denylisted word never does. ENABLE alone would miss the patch layer.
+  const validation = await loadValidation();
   const sourceWordsList = sourcePool.map((e) => e.word);
   const defs = await loadDefinitions();
-  const union = formableUnion(sourceWordsList, enable);
-  const bundles = buildBundles(sourceWordsList, enable, defs);
+  const union = formableUnion(sourceWordsList, validation);
+  const bundles = buildBundles(sourceWordsList, validation, defs);
 
   const defsDir = join(ASSET_DIR, 'defs');
   await rm(defsDir, { recursive: true, force: true });
