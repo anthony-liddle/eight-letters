@@ -1,0 +1,41 @@
+word	action	band	note
+# Dictionary patch layer. One word per line. Columns: word, action (allow or
+# deny), band (common for allow seeds; blank for deny), note (optional).
+# Allow = accept a word the base list misses, banded so it classifies right.
+# Deny = reject a word the base list wrongly accepts (seeded empty for now).
+# Bea flags a word, it becomes one line here, and the dictionary tunes to her.
+#
+# Allowlist: modern words ENABLE rejects, from the must-accept probe in
+# scripts/_investigate, plus udon. All common, because they are common words.
+meme	allow	common	modern
+email	allow	common	modern
+emailed	allow	common	modern
+emojis	allow	common	modern
+blog	allow	common	modern
+blogger	allow	common	modern
+selfie	allow	common	modern
+selfies	allow	common	modern
+emoji	allow	common	modern
+podcast	allow	common	modern
+app	allow	common	modern
+wifi	allow	common	modern
+website	allow	common	modern
+webpage	allow	common	modern
+online	allow	common	modern
+internet	allow	common	modern
+texting	allow	common	modern
+googled	allow	common	modern
+memes	allow	common	modern
+unfriend	allow	common	modern
+upvote	allow	common	modern
+downvote	allow	common	modern
+hashtag	allow	common	modern
+spam	allow	common	modern
+chatbot	allow	common	modern
+smartphone	allow	common	modern
+login	allow	common	modern
+logout	allow	common	modern
+cyber	allow	common	modern
+screenshot	allow	common	modern
+metadata	allow	common	modern
+udon	allow	common	Bea flagged
