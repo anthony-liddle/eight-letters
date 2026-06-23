@@ -105,5 +105,15 @@ export const TIERS: readonly TierDef[] = [
  */
 export const DAILY_EPOCH = { year: 2026, month: 6, day: 23 } as const;
 
+/**
+ * Fixed origin for the per-day storage and streak key. This NEVER moves, even
+ * when DAILY_EPOCH is re-anchored by a calendar regeneration. The crown for a
+ * date is selected from the movable DAILY_EPOCH, but progress and streak are
+ * keyed by days since this fixed origin, so re-anchoring the calendar cannot
+ * shift the day keys and a streak survives a regeneration with no migration.
+ * Persisted records are already days since this date, so it must stay 2026-01-01.
+ */
+export const STORAGE_EPOCH = { year: 2026, month: 1, day: 1 } as const;
+
 /** Tier a daily must reach to count toward the streak. "In the Flow" and up. */
 export const STREAK_TIER_INDEX = 3;
