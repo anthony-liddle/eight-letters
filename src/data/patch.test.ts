@@ -180,7 +180,10 @@ describe('committed seed file', () => {
     }
   });
 
-  it('ships an empty denylist (the scrub belongs to a later phase)', () => {
-    expect(patch.deny).toEqual([]);
+  it('denylists the SCOWL proper-noun and foreign warts', () => {
+    const deny = new Set(patch.deny);
+    expect(deny.has('cairo')).toBe(true); // formable proper-noun wart
+    expect(deny.has('bonjour')).toBe(true); // curated foreign word
+    expect(deny.size).toBeGreaterThan(100);
   });
 });

@@ -116,6 +116,21 @@ describe('ENABLE union SCOWL 95 boundary (live assets)', () => {
     expect(puzzle.mythicWords.has('babysit')).toBe(false);
   });
 
+  it('rejects denylisted warts that SCOWL would otherwise admit', () => {
+    // bonjour and cairo both entered the boundary via the SCOWL additions, then
+    // the denylist removes them. bonjour is the curated foreign word; cairo is a
+    // formable proper-noun wart.
+    const additions = new Set(readList('scowl95-additions.txt'));
+    expect(additions.has('bonjour')).toBe(true);
+    expect(additions.has('cairo')).toBe(true);
+    // After the patch they are gone from validation.
+    expect(validation.has('bonjour')).toBe(false);
+    expect(validation.has('cairo')).toBe(false);
+    // And a rack that can spell cairo rejects it rather than counting it.
+    const puzzle = puzzleFor('cairouln');
+    expect(validateGuess('cairo', puzzle, new Set()).kind).toBe('not-a-word');
+  });
+
   it('keeps the mythic tail base unchanged: beyond-95 stays ENABLE minus SCOWL 95', () => {
     // Every addition is within SCOWL 95, so none reach beyond-95. The tail is
     // exactly the ENABLE words beyond 95 it always was.
