@@ -103,7 +103,7 @@ export const TIERS: readonly TierDef[] = [
  * Day one of the daily sequence (local calendar date). The day index is the
  * number of whole calendar days from this date. Tunable.
  */
-export const DAILY_EPOCH = { year: 2026, month: 1, day: 1 } as const;
+export const DAILY_EPOCH = { year: 2026, month: 6, day: 23 } as const;
 
 /** Tier a daily must reach to count toward the streak. "In the Flow" and up. */
 export const STREAK_TIER_INDEX = 3;
