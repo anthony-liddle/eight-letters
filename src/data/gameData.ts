@@ -18,7 +18,7 @@ export interface DailyCalendar {
 
 /** Everything the engine and UI need, loaded once from the baked assets. */
 export interface GameData {
-  /** ENABLE validation dictionary. */
+  /** Validation dictionary: ENABLE union SCOWL 95, with the patch layer applied. */
   readonly dictionary: Dictionary;
   /** SCOWL-small set pool, the completion denominator source. */
   readonly commonPool: WordSource;
@@ -61,6 +61,7 @@ function parseWordList(text: string): string[] {
 export async function loadGameData(): Promise<GameData> {
   const [
     enableText,
+    additionsText,
     commonText,
     beyond70Text,
     beyond95Text,
@@ -69,6 +70,7 @@ export async function loadGameData(): Promise<GameData> {
     patchText,
   ] = await Promise.all([
     fetchText('enable.txt'),
+    fetchText('scowl95-additions.txt'),
     fetchText('common-pool.txt'),
     fetchText('beyond-size-70.txt'),
     fetchText('beyond-size-95.txt'),
@@ -77,12 +79,21 @@ export async function loadGameData(): Promise<GameData> {
     fetchText('dictionary-patch.tsv'),
   ]);
 
-  // Apply the curated patch on top of the baked lists before they back the
+  // The validation boundary is ENABLE union SCOWL 95: ENABLE plus the within-95
+  // SCOWL words it lacks (shipped as the additions complement so nothing is
+  // listed twice). The bands stay derived from the same SCOWL v1 list, so the
+  // newly valid words land in their true rung and the mythic tail is unchanged.
+  const validation = [
+    ...parseWordList(enableText),
+    ...parseWordList(additionsText),
+  ];
+
+  // Apply the curated patch on top of the merged lists before they back the
   // engine. The allowlist joins validation and its band; the denylist is
   // removed. Everything downstream sees one merged set of lists.
   const lists = applyPatch(
     {
-      enable: parseWordList(enableText),
+      enable: validation,
       common: parseWordList(commonText),
       beyond70: parseWordList(beyond70Text),
       beyond95: parseWordList(beyond95Text),

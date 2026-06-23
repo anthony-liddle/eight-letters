@@ -5,12 +5,15 @@
  *   pnpm data:build
  *
  * Outputs to public/data/:
- *   enable.txt           newline list, the full validation set
- *   common-pool.txt      newline list, the set / completion denominator (SCOWL small INTERSECT ENABLE)
- *   beyond-size-70.txt   newline list, ENABLE minus SCOWL size 70: the rarity-ladder cut at 70
- *   beyond-size-95.txt   newline list, ENABLE minus SCOWL size 95: the rarity-ladder cut at 95
- *   source-pool.json     [{ word, definition, etymology }], the answer pool
- *   meta.json            counts, attribution, generated timestamp
+ *   enable.txt             newline list, the ENABLE half of the boundary
+ *   scowl95-additions.txt  newline list, within-95 SCOWL words ENABLE lacks;
+ *                          the runtime unions it with ENABLE for the validation
+ *                          set (ENABLE union SCOWL 95)
+ *   common-pool.txt        newline list, the set / completion denominator (SCOWL small INTERSECT ENABLE)
+ *   beyond-size-70.txt     newline list, boundary minus SCOWL size 70: the rarity-ladder cut at 70
+ *   beyond-size-95.txt     newline list, boundary minus SCOWL size 95: the rarity-ladder cut at 95
+ *   source-pool.json       [{ word, definition, etymology }], the answer pool
+ *   meta.json              counts, attribution, generated timestamp
  *
  * The two beyond-size files are the compact complements that drive the off-page
  * rarity ladder. A formable validation word is uncommon if it is in neither
@@ -87,20 +90,36 @@ async function main(): Promise<void> {
       `(${(commonRaw.length - common.length).toLocaleString()} dropped as not in ENABLE).`,
   );
 
-  console.log(
-    'SCOWL: deriving rarity bands (ENABLE minus size 70 and size 95).',
-  );
+  console.log('SCOWL: deriving the ENABLE union SCOWL 95 boundary.');
   const scowl70 = new Set(await loadScowlWords(SIZE_70_SIZES));
   const scowl95 = new Set(await loadScowlWords(SIZE_95_SIZES));
-  const beyond70 = enable.filter((w) => !scowl70.has(w));
-  const beyond95 = enable.filter((w) => !scowl95.has(w));
+  // The boundary is ENABLE union SCOWL 95. Ship the within-95 SCOWL words ENABLE
+  // lacks as the additions complement, so no word is listed twice. The runtime
+  // unions enable.txt with this to form the validation set.
+  const additions = [...scowl95].filter((w) => !enableSet.has(w)).sort();
+  await writeAsset('scowl95-additions.txt', additions.join('\n'));
+  const boundary = [...enable, ...additions].sort();
+  console.log(
+    `  ${additions.length.toLocaleString()} SCOWL-95 words beyond ENABLE, ` +
+      `boundary ${boundary.length.toLocaleString()}.`,
+  );
+
+  console.log(
+    'SCOWL: deriving rarity bands (boundary minus size 70 and size 95).',
+  );
+  // beyond-70 is the whole boundary minus SCOWL 70, so the new SCOWL words land
+  // in their true rung (uncommon within 70, rare between 70 and 95). beyond-95
+  // is boundary minus SCOWL 95, which equals ENABLE minus SCOWL 95 because every
+  // addition is within 95, so the mythic tail is unchanged.
+  const beyond70 = boundary.filter((w) => !scowl70.has(w));
+  const beyond95 = boundary.filter((w) => !scowl95.has(w));
   await writeAsset('beyond-size-70.txt', beyond70.join('\n'));
   await writeAsset('beyond-size-95.txt', beyond95.join('\n'));
   console.log(
     `  ${beyond70.length.toLocaleString()} beyond size 70 ` +
-      `(${((beyond70.length / enable.length) * 100).toFixed(0)}% of ENABLE), ` +
+      `(${((beyond70.length / boundary.length) * 100).toFixed(0)}% of boundary), ` +
       `${beyond95.length.toLocaleString()} beyond size 95 ` +
-      `(${((beyond95.length / enable.length) * 100).toFixed(0)}%).`,
+      `(${((beyond95.length / boundary.length) * 100).toFixed(0)}%).`,
   );
 
   console.log('SCOWL: deriving 8-letter source candidates.');
@@ -189,6 +208,8 @@ async function main(): Promise<void> {
     generatedAt: new Date().toISOString(),
     counts: {
       enable: enable.length,
+      scowl95Additions: additions.length,
+      boundary: boundary.length,
       common: common.length,
       beyond70: beyond70.length,
       beyond95: beyond95.length,
