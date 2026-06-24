@@ -1,5 +1,5 @@
 // Pure shaping and storage for short tappable definitions. No I/O, no network.
-import { firstSense } from './wiktionary.ts';
+import { selectSense } from './wiktionary.ts';
 
 /** Cut text to one sentence, then to a word boundary within budget. */
 function capGloss(text: string, budget: number): string {
@@ -19,7 +19,7 @@ export function shapeDefinition(
   definitionJson: string | null,
   maxLength: number,
 ): string | null {
-  const sense = firstSense(definitionJson);
+  const sense = selectSense(definitionJson);
   if (!sense) return null;
   const prefix = sense.pos ? `${sense.pos}. ` : '';
   const budget = Math.max(1, maxLength - prefix.length);
@@ -46,6 +46,53 @@ export function serializeDefinitions(defs: Map<string, string>): string {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([word, def]) => `${word}\t${def}`);
   return lines.length ? `${lines.join('\n')}\n` : '';
+}
+
+export interface GlossChange {
+  word: string;
+  before: string;
+  after: string;
+}
+
+export interface RederiveResult {
+  /** The re-derived gloss map, one entry per existing word. */
+  next: Map<string, string>;
+  /** Words whose gloss changed, with the old and new text. */
+  changed: GlossChange[];
+  /** Words skipped because the cache held nothing for them. */
+  cacheMisses: string[];
+}
+
+/**
+ * Re-derive each existing gloss from cached Wiktionary JSON, picking a better
+ * sense. The caller supplies the per-word JSON lookup (the disk cache), so this
+ * stays pure and offline. A word is kept as-is when the cache is missing or
+ * yields no usable sense, so no word is ever blanked.
+ */
+export function rederiveGlosses(
+  existing: Map<string, string>,
+  getJson: (word: string) => string | null,
+  maxLength: number,
+): RederiveResult {
+  const next = new Map<string, string>();
+  const changed: GlossChange[] = [];
+  const cacheMisses: string[] = [];
+  for (const [word, before] of existing) {
+    const json = getJson(word);
+    if (json === null) {
+      cacheMisses.push(word);
+      next.set(word, before);
+      continue;
+    }
+    const after = shapeDefinition(json, maxLength);
+    if (!after) {
+      next.set(word, before);
+      continue;
+    }
+    next.set(word, after);
+    if (after !== before) changed.push({ word, before, after });
+  }
+  return { next, changed, cacheMisses };
 }
 
 /** Merge incoming into existing. Incoming wins on conflict. */

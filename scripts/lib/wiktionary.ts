@@ -71,28 +71,113 @@ export interface FirstSense {
   text: string;
 }
 
-/** The first usable English sense, cleaned to plain text. pos is lowercased. */
-export function firstSense(definitionJson: string | null): FirstSense | null {
-  if (!definitionJson) return null;
-  let json: Record<string, RestDefinition[]>;
+/** Parse the cached REST JSON to its English senses, or an empty list. */
+function englishSenses(definitionJson: string | null): RestDefinition[] {
+  if (!definitionJson) return [];
   try {
-    json = JSON.parse(definitionJson);
+    const json = JSON.parse(definitionJson) as Record<string, RestDefinition[]>;
+    return json.en ?? [];
   } catch {
-    return null;
+    return [];
   }
-  const en = json.en;
-  if (!en?.length) return null;
-  for (const sense of en) {
-    const first = sense.definitions?.find((d) => d.definition?.trim());
-    if (!first?.definition) continue;
-    const text = cleanText(first.definition);
+}
+
+/**
+ * A topical grouping line Wiktionary prints ahead of the real sub-senses, not a
+ * definition itself (the "Terms relating to animals" header above the feline
+ * sense of cat). Skipped so the real definition in the same sense is used.
+ */
+const PSEUDO_DEFINITION = /^Terms relating to\b/i;
+
+/** Reduce one sense to its first usable definition, cleaned. pos is lowercased. */
+function reduceSense(sense: RestDefinition): FirstSense | null {
+  for (const d of sense.definitions ?? []) {
+    if (!d.definition?.trim()) continue;
+    const text = cleanText(d.definition);
     if (!text) continue;
+    if (PSEUDO_DEFINITION.test(text)) continue;
     return { pos: sense.partOfSpeech?.toLowerCase() ?? null, text };
   }
   return null;
 }
 
-/** Source-pool definition string: "pos. text" or just text. Unchanged shape. */
+/** The first usable English sense, cleaned to plain text. pos is lowercased. */
+export function firstSense(definitionJson: string | null): FirstSense | null {
+  for (const sense of englishSenses(definitionJson)) {
+    const reduced = reduceSense(sense);
+    if (reduced) return reduced;
+  }
+  return null;
+}
+
+/**
+ * Part-of-speech tags that read as wrong when shown for an everyday word.
+ * Lowercased to match reduceSense. These carry the codes, names, and marks a
+ * player taps a common word and does not expect (the ISO code under "car").
+ */
+const JUNK_POS = new Set([
+  'symbol',
+  'proper noun',
+  'letter',
+  'number',
+  'numeral',
+  'prefix',
+  'suffix',
+  'infix',
+  'interfix',
+  'diacritical mark',
+  'punctuation mark',
+  'romanization',
+  'han character',
+]);
+
+/**
+ * Openings that mark a sense as a code, name, or label rather than a meaning.
+ * Anchored at the start so a junk word appearing mid-sentence (the science of
+ * taxonomic classification) is not demoted. Conservative by design: when in
+ * doubt, keep the sense.
+ */
+const JUNK_OPENINGS: RegExp[] = [
+  /^(the )?ISO \d/i, // ISO 639, ISO 4217, ISO 3166 codes
+  /^(an? )?(initialism|abbreviation|acronym) of\b/i,
+  /^symbol for\b/i,
+  /^(an? )?([a-z-]+ )?(male |female |unisex )?given name\b/i,
+  /^(an? )?([a-z-]+ )?surname\b/i,
+  /^(an? )?([a-z-]+ )?(placename|place name)\b/i,
+  /^(an? )?taxonomic\b/i,
+  /^(an? )?(genus|species) of\b/i,
+];
+
+/**
+ * Whether a sense is a reliably-junk one (a language or ISO code, an
+ * abbreviation or initialism, a symbol, a taxonomic or genus name, a given name
+ * or surname or place name). Demote these; do not pick unless nothing else
+ * exists. pos is the lowercased part of speech, text is the cleaned definition.
+ */
+export function isJunkSense(pos: string | null, text: string): boolean {
+  if (pos && JUNK_POS.has(pos)) return true;
+  return JUNK_OPENINGS.some((re) => re.test(text));
+}
+
+/**
+ * The best everyday English sense, cleaned to plain text. Prefers the first
+ * sense that is not reliably junk, demoting language codes, abbreviations,
+ * symbols, taxonomic and proper names. Falls back to the first usable sense
+ * when every sense is flagged, so a genuinely technical word keeps a real
+ * definition rather than going blank.
+ */
+export function selectSense(definitionJson: string | null): FirstSense | null {
+  const senses: FirstSense[] = [];
+  for (const sense of englishSenses(definitionJson)) {
+    const reduced = reduceSense(sense);
+    if (reduced) senses.push(reduced);
+  }
+  if (senses.length === 0) return null;
+  const everyday = senses.find((s) => !isJunkSense(s.pos, s.text));
+  return everyday ?? senses[0] ?? null;
+}
+
+/** Source-pool definition string: "pos. text" or just text. First-sense path. */
 export function extractDefinition(
   definitionJson: string | null,
 ): string | null {
