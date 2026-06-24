@@ -166,6 +166,32 @@ describe('FoundList per-length set counts', () => {
       expect(m![1]).toBe(m![2]); // X equals Y on every length row
     }
   });
+
+  it('labels off-page finds "also found" when a row has both a set and an off-page find', () => {
+    // near (set) and sane (off-page) are both four letters.
+    renderList(['near', 'sane']);
+    const head = screen.getByRole('heading', { name: '4 letters' });
+    const group = head.closest('section') as HTMLElement;
+
+    // The quiet label frames the off-page list as outside the count.
+    const label = within(group).getByText(/also found/i);
+    expect(label).toBeInTheDocument();
+    // It is not inside the counted set row.
+    const setRow = group.querySelector('.found__words--set') as HTMLElement;
+    expect(within(setRow).queryByText(/also found/i)).toBeNull();
+  });
+
+  it('shows no "also found" label on a clean set-only row', () => {
+    // near is a 4-letter set word with no off-page find of that length.
+    renderList(['near']);
+    expect(screen.queryByText(/also found/i)).toBeNull();
+  });
+
+  it('shows no "also found" label on an off-page-only row', () => {
+    // sane is a 4-letter off-page find with no set word found of that length.
+    renderList(['sane']);
+    expect(screen.queryByText(/also found/i)).toBeNull();
+  });
 });
 
 describe('FoundList structure', () => {

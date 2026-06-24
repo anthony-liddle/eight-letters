@@ -1048,10 +1048,24 @@ button {
   flex-wrap: wrap;
   gap: 0.3rem 0.75rem;
 }
+/* A quiet aside above the off-page list, shown only when a row has both a set
+   and an off-page find. Muted and small so it frames the extras without
+   competing with the count. Reads in both themes through --ink-soft. */
+.found__alsofound {
+  margin: 0.5rem 0 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  opacity: 0.7;
+}
 /* Off-page finds of a length sit just under the set list, set apart so the
    set count above never reads as describing them. */
 .found__words--offpage {
   margin-top: 0.4rem;
+}
+/* With the aside present, the off-page list tucks up under its label. */
+.found__alsofound + .found__words--offpage {
+  margin-top: 0.2rem;
 }
 .found__word-item {
   display: contents;

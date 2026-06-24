@@ -282,6 +282,12 @@ export function FoundList({
                 {g.setWords.map(renderChip)}
               </ul>
             )}
+            {/* Only when a row carries both: a quiet aside framing the off-page
+                finds as extras, so the count above never reads as describing
+                them. Set-only rows stay clean and label-free. */}
+            {g.setWords.length > 0 && g.offPageWords.length > 0 && (
+              <p className="found__alsofound">also found</p>
+            )}
             {g.offPageWords.length > 0 && (
               <ul className="found__words found__words--offpage">
                 {g.offPageWords.map(renderChip)}
