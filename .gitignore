@@ -7,6 +7,9 @@ dist-ssr/
 # Build-time data cache (raw downloads, Wiktionary responses). Rebuildable, not committed.
 scripts/.cache/
 
+# Scratch research: dictionary dumps, measurement scripts, findings. Not committed.
+scripts/_investigate/
+
 # Editor / OS
 .DS_Store
 .vscode/*
