@@ -898,6 +898,7 @@ button {
 }
 .summary__statline {
   white-space: nowrap;
+  margin-left: 0.34rem;
 }
 /* Green for the set, the discovery ink for every off-page rung: the same
    one-colour-one-job language as the marks. */
@@ -1044,7 +1045,7 @@ button {
 /* Off-page finds of a length sit just under the set list, set apart so the
    set count above never reads as describing them. */
 .found__words--offpage {
-  margin-top: 0.3rem;
+  margin-top: 0.4rem;
 }
 .found__word-item {
   display: contents;
@@ -1065,12 +1066,13 @@ button {
   align-items: center;
   gap: 0.35rem;
   text-transform: lowercase;
-  min-height: 44px;
+  min-height: 24px;
 }
 .found__disclosure {
   margin-left: auto;
   opacity: 0.6;
   font-style: normal;
+  display: none;
 }
 .found__word:hover .found__wordtext,
 .found__word:focus-visible .found__wordtext {
@@ -1093,7 +1095,6 @@ button {
   flex: none;
   width: 0.48em;
   height: 0.48em;
-  margin-right: 0.34em;
   vertical-align: middle;
 }
 .mark--set {
@@ -1233,10 +1234,10 @@ button {
 }
 /* Points are the reward, so every off-page find shows them inline, in discovery blue. */
 .found__points {
-  margin-left: 0.34em;
   color: var(--discovery);
   font-weight: 600;
   font-size: 0.82em;
+  opacity: 0.85;
 }
 .found__rung-note {
   margin-left: 0.4em;
@@ -1245,6 +1246,7 @@ button {
   font-style: italic;
   letter-spacing: 0.04em;
   opacity: 0.85;
+  display: none;
 }
 
 .found__empty {

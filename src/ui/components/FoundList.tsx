@@ -142,11 +142,13 @@ export function FoundList({
         {isLadder(w.category) && (
           <>
             <span className="found__points">+{w.score}</span>
+            {/* Hiding rung-note for now */}
             <span className="found__rung-note">
               {RUNG_NAMES[w.category].toLowerCase()}
             </span>
           </>
         )}
+        {/* hiding for now */}
         <span className="found__disclosure" aria-hidden="true">
           +
         </span>
