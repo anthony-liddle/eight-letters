@@ -55,18 +55,6 @@ describe('TierMeter', () => {
     expect(bar?.getAttribute('aria-valuenow')).toBe('30');
   });
 
-  it('shows an honest completion count, distinct from the points rank', () => {
-    const { container } = render(
-      <TierMeter
-        tier={standing({ setFound: 4, setTotal: 10 })}
-        theme="letterpress"
-      />,
-    );
-    expect(container.querySelector('.tier__completion')?.textContent).toMatch(
-      /4 of 10 words/i,
-    );
-  });
-
   it('holds the themed completion crown once every common word is found', () => {
     const done = standing({ setFound: 10, setTotal: 10, index: 5 });
     const { container, rerender } = render(

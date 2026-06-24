@@ -853,17 +853,6 @@ button {
   color: var(--ink-soft);
   font-style: italic;
 }
-/* The completion peak: an honest word count, quiet and distinct from the points
-   rank above it. The on-page colour ties it to the set it measures. */
-.tier__completion {
-  margin: 0.45rem 0 0;
-  font-size: 0.78rem;
-  letter-spacing: 0.02em;
-  color: var(--good);
-}
-.tier__completion.is-complete {
-  font-weight: 600;
-}
 /* The quiet completed crown the top label holds once every word is found. */
 .tier__label.is-complete {
   color: var(--crown-deep);
@@ -932,11 +921,15 @@ button {
   justify-content: space-between;
   margin: 0 0 0.4rem;
 }
-.summary__scorelabel {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--ink-soft);
+/* The named tier in the totals, the readout companion to the bar's label. */
+.summary__tier {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.summary__tier.is-complete {
+  color: var(--crown-deep);
 }
 .summary__scoretotal {
   font-family: var(--font-display);

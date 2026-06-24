@@ -1,15 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { FoundList } from './FoundList.tsx';
-import { scoreWord, totalScore, type Puzzle } from '@/engine/index.ts';
+import { computeTier, findScore, type Puzzle } from '@/engine/index.ts';
+import type { Theme } from '../useTheme.ts';
 
 // A small hand-built puzzle: six set words across four lengths, plus one find on
-// each off-page rung. Only the fields FoundList reads need to be real.
+// each off-page rung. reachableScore is the set points (the ladder denominator).
 function makePuzzle(): Puzzle {
   const common = ['serenade', 'sea', 'near', 'dean', 'eased', 'erase'];
   const uncommon = ['sane'];
   const rare = ['sneer'];
   const mythic = ['denar'];
+  const setPoints = common.reduce((s, w) => s + findScore(w, 'set'), 0); // 32
   return {
     sourceWord: 'serenade',
     letters: 'adeenrs',
@@ -18,30 +20,36 @@ function makePuzzle(): Puzzle {
     uncommonWords: new Set(uncommon),
     rareWords: new Set(rare),
     mythicWords: new Set(mythic),
-    reachableScore: 0,
+    reachableScore: setPoints,
   };
 }
 
-function renderList(found: string[]) {
+function renderList(found: string[], theme: Theme = 'letterpress') {
   const puzzle = makePuzzle();
+  const tier = computeTier(new Set(found), puzzle);
   return render(
     <FoundList
       puzzle={puzzle}
       found={found}
-      totalScore={totalScore(found)}
+      tier={tier}
+      theme={theme}
       onWordTap={() => {}}
     />,
   );
 }
 
 describe('FoundList totals summary', () => {
-  it('shows set progress as "X of Y" and the three rung counts with no denominators', () => {
+  it('shows one honest completion count, no legacy "in the set" counter', () => {
     renderList(['sea', 'near', 'sane', 'sneer', 'denar']);
 
-    // The set is the goal and carries its denominator.
-    expect(screen.getByText(/2 of 6 in the set/i)).toBeInTheDocument();
+    // The single completion count: set words found over findable.
+    expect(screen.getByText(/2 of 6 words/i)).toBeInTheDocument();
+    // The retired goal counter ("N of M in the set") is gone as a number.
+    expect(screen.queryByText(/of \d+ in the set/i)).not.toBeInTheDocument();
+  });
 
-    // The rarity ladder is counts only: never "of N".
+  it('counts each rarity rung with no denominator, ever', () => {
+    renderList(['sea', 'near', 'sane', 'sneer', 'denar']);
     expect(screen.getByText(/1 uncommon/i)).toBeInTheDocument();
     expect(screen.getByText(/1 rare/i)).toBeInTheDocument();
     expect(screen.getByText(/1 mythic/i)).toBeInTheDocument();
@@ -50,82 +58,75 @@ describe('FoundList totals summary', () => {
     expect(screen.queryByText(/mythic.*of/i)).not.toBeInTheDocument();
   });
 
-  it('shows a total words-found figure', () => {
-    renderList(['sea', 'near', 'sane', 'sneer', 'denar']);
-    expect(screen.getByText(/5 words found/i)).toBeInTheDocument();
+  it('shows the total words found, the points total, and the named tier', () => {
+    // serenade (15) puts the score at 15 of 32 set points (~0.47), Press Run.
+    renderList(['serenade', 'sane']);
+    expect(screen.getByText(/2 words found/i)).toBeInTheDocument();
+    const totals = screen.getByRole('region', { name: /words found/i });
+    expect(within(totals).getByText('Press Run')).toBeInTheDocument();
+    // serenade 15 (set) + sane 4 (uncommon: 4-letter is 3, plus the +1 bonus).
+    expect(within(totals).getByText(/19 points/i)).toBeInTheDocument();
   });
 
-  it('updates the rung counts and total as set and off-page words are found', () => {
-    const { rerender } = renderList(['sane']);
-    expect(screen.getByText(/1 uncommon/i)).toBeInTheDocument();
-    expect(screen.getByText(/0 rare/i)).toBeInTheDocument();
-    expect(screen.getByText(/0 mythic/i)).toBeInTheDocument();
-    expect(screen.getByText(/0 of 6 in the set/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 word found/i)).toBeInTheDocument();
-
-    const puzzle = makePuzzle();
-    const found = ['sane', 'sneer', 'sea'];
-    rerender(
-      <FoundList
-        puzzle={puzzle}
-        found={found}
-        totalScore={totalScore(found)}
-        onWordTap={() => {}}
-      />,
-    );
-    expect(screen.getByText(/1 uncommon/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 rare/i)).toBeInTheDocument();
-    expect(screen.getByText(/0 mythic/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 of 6 in the set/i)).toBeInTheDocument();
-    expect(screen.getByText(/3 words found/i)).toBeInTheDocument();
+  it('shows the completion crown in the totals once every word is found', () => {
+    renderList(['serenade', 'sea', 'near', 'dean', 'eased', 'erase'], 'cute');
+    expect(screen.getByText(/6 of 6 words/i)).toBeInTheDocument();
+    const totals = screen.getByRole('region', { name: /words found/i });
+    expect(within(totals).getByText('Peachy Keen Supreme')).toBeInTheDocument();
   });
 });
 
 describe('FoundList score composition', () => {
-  it('splits the score into set points and off-page points that sum to the displayed score', () => {
-    // serenade is a set word (its points are set points); sane is off-page.
+  it('names the set-versus-off-page points split from the single tier source', () => {
+    // serenade is a set word (set points); sane is off-page (uncommon).
     const found = ['serenade', 'sane'];
+    const tier = computeTier(new Set(found), makePuzzle());
     renderList(found);
 
-    const setPoints = scoreWord('serenade');
-    const offPagePoints = scoreWord('sane');
-    expect(setPoints + offPagePoints).toBe(totalScore(found));
+    // The totals read the same setPoints/offPagePoints the bar reads, so they
+    // cannot disagree: 15 set, 4 off-page (sane: 4-letter is 3, plus +1 uncommon).
+    expect(tier.setPoints).toBe(15);
+    expect(tier.offPagePoints).toBe(4);
 
     const breakdown = screen.getByRole('img', { name: /score breakdown/i });
-    expect(breakdown).toHaveAccessibleName(new RegExp(`${setPoints} set`, 'i'));
-    expect(breakdown).toHaveAccessibleName(
-      new RegExp(`${offPagePoints} off-page`, 'i'),
-    );
-
-    // The labelled values are shown, distinguishing the segments by more than
-    // colour.
-    expect(
-      screen.getByText(new RegExp(`set\\s+${setPoints}`, 'i')),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(new RegExp(`off-page\\s+${offPagePoints}`, 'i')),
-    ).toBeInTheDocument();
+    expect(breakdown).toHaveAccessibleName(/15 set/i);
+    expect(breakdown).toHaveAccessibleName(/4 off-page/i);
+    expect(screen.getByText(/set\s+15/i)).toBeInTheDocument();
+    expect(screen.getByText(/off-page\s+4/i)).toBeInTheDocument();
   });
 });
 
 describe('FoundList structure', () => {
   it('renders each word-length group as a section with a level-3 heading', () => {
     renderList(['serenade', 'sea', 'near', 'sneer']);
-
-    const headings = screen.getAllByRole('heading', { level: 3 });
-    const names = headings.map((h) => h.textContent);
+    const names = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent);
     expect(names).toContain('8 letters');
     expect(names).toContain('4 letters');
     expect(names).toContain('3 letters');
   });
 
+  it('keeps every glossary mark filled and positive, the source crown intact', () => {
+    const { container } = renderList(['serenade', 'sea', 'sane']);
+    // set word: unbadged set mark; off-page: rung mark with inline points; the
+    // source word keeps its crown mark. None reads as an empty slot.
+    expect(
+      container.querySelector('.found__word--source .mark--source'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.found__word--set .mark--set'),
+    ).toBeTruthy();
+    const off = container.querySelector('.found__word--uncommon');
+    expect(off?.querySelector('.mark--uncommon')).toBeTruthy();
+    expect(off?.textContent).toMatch(/\+\d/);
+  });
+
   it('renders the legend as a distinct key, separated from the word list', () => {
     renderList(['sea']);
-
     const glossary = screen.getByRole('region', { name: /words found/i });
     const legend = glossary.querySelector('.legend');
     expect(legend).toBeTruthy();
-    // A caption sets the key off as a key, not another row of found words.
     expect(
       within(legend as HTMLElement).getByText(/^key$/i),
     ).toBeInTheDocument();
@@ -143,7 +144,8 @@ describe('FoundList word tap', () => {
       <FoundList
         puzzle={puzzle}
         found={['sea']}
-        totalScore={totalScore(['sea'])}
+        tier={computeTier(new Set(['sea']), puzzle)}
+        theme="letterpress"
         onWordTap={onWordTap}
       />,
     );
@@ -151,20 +153,5 @@ describe('FoundList word tap', () => {
     fireEvent.click(btn);
     expect(onWordTap).toHaveBeenCalledWith('sea', btn);
     expect(document.activeElement).toBe(btn);
-  });
-
-  it('exposes a non-color affordance on each word', () => {
-    const puzzle = makePuzzle();
-    const { container } = render(
-      <FoundList
-        puzzle={puzzle}
-        found={['sea']}
-        totalScore={totalScore(['sea'])}
-        onWordTap={() => {}}
-      />,
-    );
-    expect(
-      container.querySelector('.found__word .found__disclosure'),
-    ).not.toBeNull();
   });
 });
