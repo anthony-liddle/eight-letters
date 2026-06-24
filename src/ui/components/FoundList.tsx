@@ -42,7 +42,10 @@ interface Group {
   setTotal: number;
   /** Set words of this length that were found (the "X"). */
   setFound: number;
-  words: Word[];
+  /** Set and source finds: the population the "X of Y" set count describes. */
+  setWords: Word[];
+  /** Off-page finds of this length: shown, but never inside the set count. */
+  offPageWords: Word[];
 }
 
 function categorize(word: string, puzzle: Puzzle): Category {
@@ -83,14 +86,16 @@ function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
       const words = (foundByLen.get(length) ?? []).sort((a, b) =>
         a.word.localeCompare(b.word),
       );
+      // The source word is a set word too, so it counts toward the set. Off-page
+      // finds are split out so the "X of Y" set count never lists them.
+      const setWords = words.filter((w) => !isLadder(w.category));
+      const offPageWords = words.filter((w) => isLadder(w.category));
       return {
         length,
         setTotal: setTotalByLen.get(length) ?? 0,
-        // The source word is a set word too, so it counts toward the set.
-        setFound: words.filter(
-          (w) => w.category === 'set' || w.category === 'source',
-        ).length,
-        words,
+        setFound: setWords.length,
+        setWords,
+        offPageWords,
       };
     });
 }
@@ -139,6 +144,34 @@ export function FoundList({
     }
     return counts;
   }, [found, puzzle]);
+
+  const renderChip = (w: Word) => (
+    <li key={w.word} className="found__word-item" role="listitem">
+      <button
+        type="button"
+        className={`found__word found__word--${w.category}`}
+        aria-label={`${w.word}, show definition`}
+        onClick={(e) => {
+          e.currentTarget.focus();
+          onWordTap(w.word, e.currentTarget);
+        }}
+      >
+        <span className={`mark mark--${w.category}`} aria-hidden="true" />
+        <span className="found__wordtext">{w.word}</span>
+        {isLadder(w.category) && (
+          <>
+            <span className="found__points">+{w.score}</span>
+            <span className="found__rung-note">
+              {RUNG_NAMES[w.category].toLowerCase()}
+            </span>
+          </>
+        )}
+        <span className="found__disclosure" aria-hidden="true">
+          +
+        </span>
+      </button>
+    </li>
+  );
 
   return (
     <section className="found" aria-label="Words found">
@@ -237,38 +270,18 @@ export function FoundList({
                 </span>
               )}
             </div>
-            <ul className="found__words">
-              {g.words.map((w) => (
-                <li key={w.word} className="found__word-item" role="listitem">
-                  <button
-                    type="button"
-                    className={`found__word found__word--${w.category}`}
-                    aria-label={`${w.word}, show definition`}
-                    onClick={(e) => {
-                      e.currentTarget.focus();
-                      onWordTap(w.word, e.currentTarget);
-                    }}
-                  >
-                    <span
-                      className={`mark mark--${w.category}`}
-                      aria-hidden="true"
-                    />
-                    <span className="found__wordtext">{w.word}</span>
-                    {isLadder(w.category) && (
-                      <>
-                        <span className="found__points">+{w.score}</span>
-                        <span className="found__rung-note">
-                          {RUNG_NAMES[w.category].toLowerCase()}
-                        </span>
-                      </>
-                    )}
-                    <span className="found__disclosure" aria-hidden="true">
-                      +
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {/* The set count above describes only this list. Off-page finds of
+                the same length follow in their own list, never counted. */}
+            {g.setWords.length > 0 && (
+              <ul className="found__words found__words--set">
+                {g.setWords.map(renderChip)}
+              </ul>
+            )}
+            {g.offPageWords.length > 0 && (
+              <ul className="found__words found__words--offpage">
+                {g.offPageWords.map(renderChip)}
+              </ul>
+            )}
           </section>
         ))
       )}
