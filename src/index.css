@@ -1034,6 +1034,12 @@ button {
   letter-spacing: 0.02em;
   color: var(--ink);
 }
+.found__groupcount {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
 .found__words {
   list-style: none;
   margin: 0;
