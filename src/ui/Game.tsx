@@ -120,7 +120,7 @@ export function Game({ data, audio, storage }: Props) {
           >
             {state.message?.text ?? ' '}
           </p>
-          <TierMeter tier={state.tier} totalScore={state.totalScore} />
+          <TierMeter tier={state.tier} theme={theme} />
         </div>
 
         <FoundList
@@ -147,7 +147,9 @@ export function Game({ data, audio, storage }: Props) {
         {state.announcement.text}
       </div>
 
-      {state.editionOpen && <EditionCard onClose={game.closeEdition} />}
+      {state.editionOpen && (
+        <EditionCard theme={theme} onClose={game.closeEdition} />
+      )}
 
       {confettiOn && <Confetti onDone={endConfetti} />}
 

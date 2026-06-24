@@ -39,6 +39,13 @@ export interface Puzzle {
   readonly rareWords: ReadonlySet<string>;
   /** Off-page finds valid in ENABLE but beyond SCOWL size 95. The top rung. */
   readonly mythicWords: ReadonlySet<string>;
+  /**
+   * Total points available on this rack: every findable word scored by length
+   * plus its rarity bonus, source word included. The denominator the named
+   * points ladder runs against, so each rack is judged against its own ceiling.
+   * Derived deterministically with the puzzle, the same as the formable set.
+   */
+  readonly reachableScore: number;
 }
 
 /** Why a guess was accepted or rejected. */
@@ -56,20 +63,33 @@ export type GuessResult =
   | { readonly kind: 'not-a-word' }
   | { readonly kind: 'already-found' };
 
-/** A computed tier standing, measured by the count of set words found. */
+/**
+ * A computed standing on the named points ladder. The rank is score as a
+ * fraction of the rack's reachable score, so every find (set or off-page) moves
+ * it up and rarity pays more. Theme-neutral: the displayed rank name is skinned
+ * over `index` in the UI. `setFound`/`setTotal` are carried only for the existing
+ * Edition-complete celebration, not for the ladder.
+ */
 export interface TierStanding {
-  /** Index into the tier ladder. */
+  /** Index into the named ladder (0 to 5). */
   readonly index: number;
   readonly id: string;
-  readonly label: string;
-  /** Fraction of the set found, by word count (setFound / setTotal), 0 to 1. */
+  /** Points earned so far: length scores plus rarity bonuses. */
+  readonly score: number;
+  /** Total points available on the rack (the denominator). */
+  readonly reachable: number;
+  /** score / reachable, 0 to 1. */
   readonly fraction: number;
-  /** Set words found (the "X" of "X of Y"). */
+  /** Points from set (on-page) finds, for the two-color bar. */
+  readonly setPoints: number;
+  /** Points from off-page finds, for the two-color bar. */
+  readonly offPagePoints: number;
+  /** Set words found, kept for the Edition-complete celebration (Stage 2 retargets). */
   readonly setFound: number;
-  /** Total set words (the "Y" of "X of Y"). */
+  /** Total set words, kept for the Edition-complete celebration. */
   readonly setTotal: number;
-  /** The next rung, or null at the top. */
-  readonly next: { id: string; label: string; threshold: number } | null;
-  /** True once the top rung is reached. */
+  /** The next rank, or null at the top named rank. */
+  readonly next: { index: number; threshold: number } | null;
+  /** True once the top named rank is reached (below full completion). */
   readonly isTop: boolean;
 }

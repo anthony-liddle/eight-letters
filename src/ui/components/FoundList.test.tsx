@@ -18,6 +18,7 @@ function makePuzzle(): Puzzle {
     uncommonWords: new Set(uncommon),
     rareWords: new Set(rare),
     mythicWords: new Set(mythic),
+    reachableScore: 0,
   };
 }
 

@@ -1,8 +1,16 @@
-import type { Dictionary, Puzzle, WordSource } from './types.ts';
+import { findScore } from './scoring.ts';
+import type { Dictionary, Puzzle, Rung, WordSource } from './types.ts';
 
 /** Sort a word's letters for a stable canonical rack form. */
 function sortLetters(word: string): string {
   return [...word].sort().join('');
+}
+
+/** Summed find score for a band of words at a known rung. */
+function bandScore(words: Iterable<string>, rung: Rung): number {
+  let total = 0;
+  for (const word of words) total += findScore(word, rung);
+  return total;
 }
 
 /**
@@ -52,6 +60,16 @@ export function createPuzzle(
   // Beyond 95. Set words never reach this far.
   const mythicWords = new Set(beyond95);
 
+  // Reachable score: the set points (every common word at length, source word
+  // included). The named ladder runs against this. Off-page finds still earn
+  // their points into the score, so they climb faster and overflow the bar past
+  // the top named rank, but they are not part of the denominator. Using the
+  // huge ENABLE-union-SCOWL-95 off-page tail as the ceiling would make the
+  // ladder unclimbable; set points are the stable, per-rack-consistent scale.
+  // The set defines what a full climb is worth, not what must be found, so no
+  // unfound word gates the climb. Full word-count completion is the Stage 2 peak.
+  const reachableScore = bandScore(commonWords, 'set');
+
   return {
     sourceWord,
     letters: sortLetters(sourceWord),
@@ -60,5 +78,6 @@ export function createPuzzle(
     uncommonWords,
     rareWords,
     mythicWords,
+    reachableScore,
   };
 }

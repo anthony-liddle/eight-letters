@@ -12,6 +12,7 @@ const puzzle: Puzzle = {
   uncommonWords: new Set(['ulna']), // in SCOWL 70, not the set
   rareWords: new Set(['talon']), // in SCOWL 95, not 70
   mythicWords: new Set(['anti']), // beyond SCOWL 95
+  reachableScore: 0,
 };
 
 describe('classifyWord', () => {

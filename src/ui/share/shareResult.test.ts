@@ -25,6 +25,7 @@ function testPuzzle(): Puzzle {
     uncommonWords,
     rareWords,
     mythicWords,
+    reachableScore: 0,
   };
 }
 

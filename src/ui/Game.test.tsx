@@ -198,35 +198,34 @@ describe('Game', () => {
     expect(screen.getByRole('status').textContent).toMatch(/rare find: sneer/i);
   });
 
-  it('keeps the bar and the X-of-Y counter in agreement', () => {
+  it('drives the bar by points, decoupled from the set counter', () => {
     renderGame();
-    // Two of the six set words found.
+    // Two set words: sea (3 letters, 1) and near (4 letters, 3) = 4 points.
     type('sea');
     fireEvent.keyDown(window, { key: 'Enter' });
     type('near');
     fireEvent.keyDown(window, { key: 'Enter' });
 
-    const counter = screen.getByText(/2 of 6 in the set/i);
-    expect(counter).toBeInTheDocument();
+    // The set counter is still a tally, but the bar is no longer tied to it.
+    expect(screen.getByText(/2 of 6 in the set/i)).toBeInTheDocument();
     const bar = screen.getByRole('progressbar');
-    // 2 of 6 is 33 percent, the same fact the counter shows.
-    expect(bar).toHaveAttribute('aria-valuenow', '33');
+    expect(bar).toHaveAttribute('aria-valuenow', '4'); // points, not the 2 of 6
   });
 
-  it('lets an off-page find feed the score but never the bar', () => {
+  it('lets an off-page find feed both the score and the bar', () => {
     renderGame();
     const bar = screen.getByRole('progressbar');
-    const meter = screen.getByRole('region', { name: /completion/i });
+    const meter = screen.getByRole('region', { name: /progress/i });
     expect(bar).toHaveAttribute('aria-valuenow', '0');
     expect(within(meter).getByText('0 points')).toBeInTheDocument();
 
-    type('denar'); // mythic, off-page, 5 letters -> 5 points
+    // denar is mythic (off-page): 5 letters (5) plus the mythic bonus (4) = 9.
+    type('denar');
     fireEvent.keyDown(window, { key: 'Enter' });
 
-    // The bar has not moved: the set is still empty.
-    expect(bar).toHaveAttribute('aria-valuenow', '0');
-    // But the score meter has climbed by the word's points.
-    expect(within(meter).getByText('5 points')).toBeInTheDocument();
+    // The old set-fraction bar ignored off-page finds; the points bar climbs.
+    expect(bar).toHaveAttribute('aria-valuenow', '9');
+    expect(within(meter).getByText('9 points')).toBeInTheDocument();
   });
 
   it('updates the tier as common words are found', () => {
@@ -433,7 +432,7 @@ describe('Game edition complete', () => {
     enter();
   };
   const editionCard = () =>
-    screen.queryByRole('region', { name: /edition complete/i });
+    screen.queryByRole('region', { name: /the complete works/i });
   // Every common word on this rack: finding all of them is 100% of the set.
   const SET = ['sea', 'near', 'dean', 'eased', 'erase'];
 
@@ -456,10 +455,12 @@ describe('Game edition complete', () => {
     renderGame();
     completeTheSet();
 
-    // The card appears and the tier label holds Edition Complete.
+    // The Edition celebration still fires on set completion (Stage 2 retargets
+    // it). The progress bar is its own points climb and stays present.
     expect(editionCard()).toBeInTheDocument();
-    const tier = screen.getByRole('region', { name: /completion/i });
-    expect(within(tier).getByText('Edition Complete')).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: /progress/i }),
+    ).toBeInTheDocument();
 
     // Play continues: a bonus word can still be set.
     findWord('sane');
@@ -471,17 +472,51 @@ describe('Game edition complete', () => {
     expect(editionCard()).not.toBeInTheDocument();
     findWord('sneer'); // another non-set find
     expect(editionCard()).not.toBeInTheDocument();
-    // The label still holds the top rung.
-    const tierAfter = screen.getByRole('region', { name: /completion/i });
-    expect(within(tierAfter).getByText('Edition Complete')).toBeInTheDocument();
+    // The points bar persists and keeps climbing; the celebration fired once.
+    expect(
+      screen.getByRole('region', { name: /progress/i }),
+    ).toBeInTheDocument();
   });
 
   it('announces the completion for screen readers', () => {
     renderGame();
     completeTheSet();
     expect(screen.getByRole('status').textContent).toMatch(
-      /edition complete\. every word in the set found/i,
+      /completed\. every common word found/i,
     );
+  });
+
+  it('completes by word count, not points: top rank but missing common words does not fire it', () => {
+    renderGame();
+    findWord('serenade'); // source, also a common word; dismiss its reveal
+    fireEvent.click(screen.getByRole('button', { name: /back to the case/i }));
+    // Heavy off-page points push well past par (the top named rank) ...
+    ['denar', 'sneer', 'sane'].forEach(findWord);
+    const bar = screen.getByRole('progressbar');
+    expect(Number(bar.getAttribute('aria-valuenow'))).toBeGreaterThanOrEqual(
+      Number(bar.getAttribute('aria-valuemax')),
+    );
+    // ... but only one of the six common words is found, so no completion.
+    expect(editionCard()).not.toBeInTheDocument();
+    const meter = screen.getByRole('region', { name: /progress/i });
+    expect(within(meter).getByText(/1 of 6 words/i)).toBeInTheDocument();
+  });
+
+  it('keeps the source word and completion as independent crowns', () => {
+    renderGame();
+    // Finding the source word fires its reveal, never completion.
+    findWord('serenade');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(editionCard()).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /back to the case/i }));
+    // Completing fires the crown but does not re-open the source reveal.
+    SET.slice(0, -1).forEach(findWord);
+    findWord(SET[SET.length - 1]!);
+    expect(editionCard()).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // The quiet completed state holds the themed crown on the meter.
+    const meter = screen.getByRole('region', { name: /progress/i });
+    expect(within(meter).getByText('The Complete Works')).toBeInTheDocument();
   });
 });
 
@@ -522,7 +557,7 @@ describe('Game edition confetti', () => {
     completeTheSet();
     expect(confetti()).toBeNull();
     expect(
-      screen.getByRole('region', { name: /edition complete/i }),
+      screen.getByRole('region', { name: /the complete works/i }),
     ).toBeInTheDocument();
   });
 
@@ -538,7 +573,7 @@ describe('Game edition confetti', () => {
     completeTheSet();
     expect(confetti()).toBeNull();
     expect(
-      screen.getByRole('region', { name: /edition complete/i }),
+      screen.getByRole('region', { name: /peachy keen supreme/i }),
     ).toBeInTheDocument();
   });
 
