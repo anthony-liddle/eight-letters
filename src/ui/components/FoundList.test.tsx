@@ -96,31 +96,101 @@ describe('FoundList score composition', () => {
   });
 });
 
-describe('FoundList per-length groups carry no count', () => {
-  it('shows the length groupings with no per-row "X of Y" denominator', () => {
+describe('FoundList per-length set counts', () => {
+  it('shows each length an "X of Y" denominated by the set words of that length', () => {
+    // 4-letter set words: near, dean (2 in the set). near is found.
+    renderList(['near', 'sane']);
+    const head = screen.getByRole('heading', { name: '4 letters' });
+    const group = head.closest('section') as HTMLElement;
+    expect(within(group).getByText('1 of 2')).toBeInTheDocument();
+  });
+
+  it('counts only the set words of a length, never the off-page finds (come and cone)', () => {
+    // near (set) and sane (off-page uncommon) are both four letters.
+    renderList(['near', 'sane']);
+    const head = screen.getByRole('heading', { name: '4 letters' });
+    const group = head.closest('section') as HTMLElement;
+
+    // The count is one of the two four-letter set words: sane is not counted.
+    expect(within(group).getByText('1 of 2')).toBeInTheDocument();
+
+    // The counted set row lists near, never the off-page sane.
+    const setRow = group.querySelector('.found__words--set') as HTMLElement;
+    expect(within(setRow).getByText('near')).toBeInTheDocument();
+    expect(within(setRow).queryByText('sane')).toBeNull();
+
+    // sane still shows in the length group, in the off-page row, outside the count.
+    const offRow = group.querySelector('.found__words--offpage') as HTMLElement;
+    expect(within(offRow).getByText('sane')).toBeInTheDocument();
+  });
+
+  it('makes the per-length set counts reconcile to the top-level completion count', () => {
+    const found = ['near', 'sane', 'sea'];
+    const { container } = renderList(found);
+    const tier = computeTier(new Set(found), makePuzzle());
+
+    const counts = [...container.querySelectorAll('.found__groupcount')].map(
+      (el) => {
+        const m = (el.textContent ?? '').match(/(\d+)\s+of\s+(\d+)/);
+        return { x: Number(m![1]), y: Number(m![2]) };
+      },
+    );
+    const sumX = counts.reduce((s, c) => s + c.x, 0);
+    const sumY = counts.reduce((s, c) => s + c.y, 0);
+
+    // Numerators sum to set words found; denominators sum to total set words.
+    expect(sumX).toBe(tier.setFound); // near + sea = 2 (sane is off-page)
+    expect(sumY).toBe(tier.setTotal); // 6
+  });
+
+  it('shows a row for a set length she has not cracked yet, reading 0 of Y', () => {
+    // sea is three letters; the five-letter set words (eased, erase) are unfound.
+    renderList(['sea']);
+    const head = screen.getByRole('heading', { name: '5 letters' });
+    const group = head.closest('section') as HTMLElement;
+    expect(within(group).getByText('0 of 2')).toBeInTheDocument();
+  });
+
+  it('reads every row Y of Y once every common word is found', () => {
+    const { container } = renderList([
+      'serenade',
+      'sea',
+      'near',
+      'dean',
+      'eased',
+      'erase',
+    ]);
+    expect(screen.getByText(/6 of 6 words/i)).toBeInTheDocument();
+    for (const el of container.querySelectorAll('.found__groupcount')) {
+      const m = (el.textContent ?? '').match(/(\d+)\s+of\s+(\d+)/);
+      expect(m![1]).toBe(m![2]); // X equals Y on every length row
+    }
+  });
+
+  it('labels off-page finds "also found" when a row has both a set and an off-page find', () => {
     // near (set) and sane (off-page) are both four letters.
     renderList(['near', 'sane']);
     const head = screen.getByRole('heading', { name: '4 letters' });
     const group = head.closest('section') as HTMLElement;
 
-    // No per-length count: the group head carries the length and nothing else.
-    expect(group.querySelector('.found__groupcount')).toBeNull();
-    expect(within(group).queryByText(/of \d+/i)).toBeNull();
-
-    // Both finds still appear in their length group, with their marks intact.
-    expect(within(group).getByText('near')).toBeInTheDocument();
-    expect(within(group).getByText('sane')).toBeInTheDocument();
-    expect(group.querySelector('.found__word--set .mark--set')).toBeTruthy();
-    const off = group.querySelector('.found__word--uncommon') as HTMLElement;
-    expect(off.querySelector('.mark--uncommon')).toBeTruthy();
-    expect(off.textContent).toMatch(/\+\d/);
+    // The quiet label frames the off-page list as outside the count.
+    const label = within(group).getByText(/also found/i);
+    expect(label).toBeInTheDocument();
+    // It is not inside the counted set row.
+    const setRow = group.querySelector('.found__words--set') as HTMLElement;
+    expect(within(setRow).queryByText(/also found/i)).toBeNull();
   });
 
-  it('leaves the top-level completion count as the only "X of Y" in the readout', () => {
-    const { container } = renderList(['near', 'sane']);
-    // Exactly one "N of M" anywhere: the top completion count.
-    const ofMatches = (container.textContent ?? '').match(/\d+\s+of\s+\d+/gi);
-    expect(ofMatches).toEqual(['1 of 6']); // 1 of 6 words; no per-length counts
+  it('shows no "also found" label on a clean set-only row', () => {
+    // near is a 4-letter set word with no off-page find of that length.
+    renderList(['near']);
+    expect(screen.queryByText(/also found/i)).toBeNull();
+  });
+
+  it('shows no "also found" label on an off-page-only row', () => {
+    // sane is a 4-letter off-page find with no set word found of that length.
+    renderList(['sane']);
+    expect(screen.queryByText(/also found/i)).toBeNull();
   });
 });
 
