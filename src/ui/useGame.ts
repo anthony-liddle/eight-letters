@@ -219,8 +219,10 @@ function reduceSlice(slice: Slice, action: Action): Slice {
           ? `${result.word}, ${points}.`
           : `${RUNG_NAMES[result.rung]} find: ${result.word}, ${points}.`;
       // Rank name is theme-skinned in the view; the spoken cue stays generic.
+      // The crown name is theme-skinned in the view; the spoken cue stays
+      // generic, like the tier-up cue. Completion is the word-count peak.
       const announceText = justComplete
-        ? `${base} Edition complete. Every word in the set found.`
+        ? `${base} Completed. Every common word found.`
         : base + (tier.index > slice.tier.index ? ' New rank.' : '');
 
       const messageText = result.isSourceWord

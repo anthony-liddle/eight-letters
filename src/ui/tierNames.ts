@@ -27,6 +27,24 @@ export const TIER_NAMES: Record<Theme, readonly string[]> = {
   ],
 };
 
+/**
+ * The completion crown: the rank above the six named ranks, reached not by
+ * points but by finding every common word (the Stage 2 peak). Same per-theme
+ * structure as the ladder, so a theme switch re-skins the crown label live.
+ */
+export const CROWN_NAMES: Record<Theme, string> = {
+  letterpress: 'The Complete Works',
+  cute: 'Peachy Keen Supreme',
+};
+
+/** The crown's rank index, one above the top named rank (5). */
+export const CROWN_RANK = TIER_NAMES.letterpress.length;
+
+/** The themed completion-crown name for the active theme. */
+export function crownName(theme: Theme): string {
+  return CROWN_NAMES[theme];
+}
+
 /** The themed name for a rank index, clamped to the top name past the ladder. */
 export function tierName(theme: Theme, index: number): string {
   const names = TIER_NAMES[theme];

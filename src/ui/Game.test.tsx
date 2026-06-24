@@ -432,7 +432,7 @@ describe('Game edition complete', () => {
     enter();
   };
   const editionCard = () =>
-    screen.queryByRole('region', { name: /edition complete/i });
+    screen.queryByRole('region', { name: /the complete works/i });
   // Every common word on this rack: finding all of them is 100% of the set.
   const SET = ['sea', 'near', 'dean', 'eased', 'erase'];
 
@@ -482,8 +482,41 @@ describe('Game edition complete', () => {
     renderGame();
     completeTheSet();
     expect(screen.getByRole('status').textContent).toMatch(
-      /edition complete\. every word in the set found/i,
+      /completed\. every common word found/i,
     );
+  });
+
+  it('completes by word count, not points: top rank but missing common words does not fire it', () => {
+    renderGame();
+    findWord('serenade'); // source, also a common word; dismiss its reveal
+    fireEvent.click(screen.getByRole('button', { name: /back to the case/i }));
+    // Heavy off-page points push well past par (the top named rank) ...
+    ['denar', 'sneer', 'sane'].forEach(findWord);
+    const bar = screen.getByRole('progressbar');
+    expect(Number(bar.getAttribute('aria-valuenow'))).toBeGreaterThanOrEqual(
+      Number(bar.getAttribute('aria-valuemax')),
+    );
+    // ... but only one of the six common words is found, so no completion.
+    expect(editionCard()).not.toBeInTheDocument();
+    const meter = screen.getByRole('region', { name: /progress/i });
+    expect(within(meter).getByText(/1 of 6 words/i)).toBeInTheDocument();
+  });
+
+  it('keeps the source word and completion as independent crowns', () => {
+    renderGame();
+    // Finding the source word fires its reveal, never completion.
+    findWord('serenade');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(editionCard()).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /back to the case/i }));
+    // Completing fires the crown but does not re-open the source reveal.
+    SET.slice(0, -1).forEach(findWord);
+    findWord(SET[SET.length - 1]!);
+    expect(editionCard()).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // The quiet completed state holds the themed crown on the meter.
+    const meter = screen.getByRole('region', { name: /progress/i });
+    expect(within(meter).getByText('The Complete Works')).toBeInTheDocument();
   });
 });
 
@@ -524,7 +557,7 @@ describe('Game edition confetti', () => {
     completeTheSet();
     expect(confetti()).toBeNull();
     expect(
-      screen.getByRole('region', { name: /edition complete/i }),
+      screen.getByRole('region', { name: /the complete works/i }),
     ).toBeInTheDocument();
   });
 
@@ -540,7 +573,7 @@ describe('Game edition confetti', () => {
     completeTheSet();
     expect(confetti()).toBeNull();
     expect(
-      screen.getByRole('region', { name: /edition complete/i }),
+      screen.getByRole('region', { name: /peachy keen supreme/i }),
     ).toBeInTheDocument();
   });
 

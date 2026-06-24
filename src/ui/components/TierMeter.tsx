@@ -1,6 +1,6 @@
 import { TIERS, type TierStanding } from '@/engine/index.ts';
 import type { Theme } from '../useTheme.ts';
-import { tierName } from '../tierNames.ts';
+import { crownName, tierName } from '../tierNames.ts';
 
 interface Props {
   tier: TierStanding;
@@ -18,13 +18,19 @@ export function TierMeter({ tier, theme }: Props) {
   // the named rank caps at the top. The overflow is the climb toward the Stage 2
   // completion peak, which this bar does not measure.
   const pct = Math.min(100, Math.round(tier.fraction * 100));
-  const label = tierName(theme, tier.index);
+  // Completion is the word-count peak above the named ladder: every common word
+  // found. Once reached, the label quietly holds the themed crown so the
+  // achievement stays visible while play continues. It is not a points rank.
+  const completed = tier.setTotal > 0 && tier.setFound >= tier.setTotal;
+  const label = completed ? crownName(theme) : tierName(theme, tier.index);
   const rest = Math.max(0, tier.reachable - tier.score);
 
   return (
     <section className="tier" aria-label="Progress">
       <div className="tier__head">
-        <span className="tier__label">{label}</span>
+        <span className={'tier__label' + (completed ? ' is-complete' : '')}>
+          {label}
+        </span>
         <span className="tier__score">
           {tier.score} {tier.score === 1 ? 'point' : 'points'}
         </span>
@@ -80,6 +86,12 @@ export function TierMeter({ tier, theme }: Props) {
           </span>
         )}
       </div>
+      {/* The completion peak, an honest word count over words findable, distinct
+          from the points rank above. The one place an "X of Y" belongs. */}
+      <p className={'tier__completion' + (completed ? ' is-complete' : '')}>
+        {tier.setFound} of {tier.setTotal} words
+        {completed ? ', complete' : ''}
+      </p>
     </section>
   );
 }

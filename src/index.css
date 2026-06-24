@@ -853,6 +853,21 @@ button {
   color: var(--ink-soft);
   font-style: italic;
 }
+/* The completion peak: an honest word count, quiet and distinct from the points
+   rank above it. The on-page colour ties it to the set it measures. */
+.tier__completion {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--good);
+}
+.tier__completion.is-complete {
+  font-weight: 600;
+}
+/* The quiet completed crown the top label holds once every word is found. */
+.tier__label.is-complete {
+  color: var(--crown-deep);
+}
 
 /* ---- Found list (the glossary) ------------------------------------------ */
 
@@ -1500,14 +1515,6 @@ button {
   line-height: 1;
   color: var(--accent);
   margin: 0 0 0.2rem;
-}
-.edition__kicker {
-  font-size: 0.66rem;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  margin: 0 0 0.3rem;
-  padding-left: 0.34em;
 }
 .edition__title {
   font-family: var(--font-display);
