@@ -38,13 +38,9 @@ interface Word {
 
 interface Group {
   length: number;
-  /** Set words of this length (the "of Y"). */
-  setTotal: number;
-  /** Set words of this length that were found (the "X"). */
-  setFound: number;
-  /** Set and source finds: the population the "X of Y" set count describes. */
+  /** Set and source finds of this length. */
   setWords: Word[];
-  /** Off-page finds of this length: shown, but never inside the set count. */
+  /** Off-page finds of this length. */
   offPageWords: Word[];
 }
 
@@ -56,11 +52,6 @@ function categorize(word: string, puzzle: Puzzle): Category {
 }
 
 function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
-  const setTotalByLen = new Map<number, number>();
-  for (const w of puzzle.commonWords) {
-    setTotalByLen.set(w.length, (setTotalByLen.get(w.length) ?? 0) + 1);
-  }
-
   const foundByLen = new Map<number, Word[]>();
   for (const word of found) {
     const list = foundByLen.get(word.length) ?? [];
@@ -74,28 +65,18 @@ function buildGroups(puzzle: Puzzle, found: readonly string[]): Group[] {
     foundByLen.set(word.length, list);
   }
 
-  const lengths = new Set<number>([
-    ...setTotalByLen.keys(),
-    ...foundByLen.keys(),
-  ]);
-
-  // Longest first: the eight-letter word sits at the head of the glossary.
-  return [...lengths]
+  // Only lengths she has found words in: the groups are plain organization of
+  // her finds, longest first, with no per-row count.
+  return [...foundByLen.keys()]
     .sort((a, b) => b - a)
     .map((length) => {
       const words = (foundByLen.get(length) ?? []).sort((a, b) =>
         a.word.localeCompare(b.word),
       );
-      // The source word is a set word too, so it counts toward the set. Off-page
-      // finds are split out so the "X of Y" set count never lists them.
-      const setWords = words.filter((w) => !isLadder(w.category));
-      const offPageWords = words.filter((w) => isLadder(w.category));
       return {
         length,
-        setTotal: setTotalByLen.get(length) ?? 0,
-        setFound: setWords.length,
-        setWords,
-        offPageWords,
+        setWords: words.filter((w) => !isLadder(w.category)),
+        offPageWords: words.filter((w) => isLadder(w.category)),
       };
     });
 }
@@ -264,14 +245,9 @@ export function FoundList({
           <section className="found__group" key={g.length}>
             <div className="found__grouphead">
               <h3 className="found__grouplen">{g.length} letters</h3>
-              {g.setTotal > 0 && (
-                <span className="found__groupcount">
-                  {g.setFound} of {g.setTotal}
-                </span>
-              )}
             </div>
-            {/* The set count above describes only this list. Off-page finds of
-                the same length follow in their own list, never counted. */}
+            {/* No per-row count: the single completion total above is the only
+                "X of Y". Set finds first, then off-page finds of this length. */}
             {g.setWords.length > 0 && (
               <ul className="found__words found__words--set">
                 {g.setWords.map(renderChip)}

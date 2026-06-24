@@ -96,25 +96,31 @@ describe('FoundList score composition', () => {
   });
 });
 
-describe('FoundList per-length set counts', () => {
-  it('keeps a length set count and its shown chips describing the same set population', () => {
-    // 4-letter set words: near, dean (2 in the set). sane is a 4-letter off-page
-    // find, so it must not sit inside the "X of Y" set-counted row.
+describe('FoundList per-length groups carry no count', () => {
+  it('shows the length groupings with no per-row "X of Y" denominator', () => {
+    // near (set) and sane (off-page) are both four letters.
     renderList(['near', 'sane']);
     const head = screen.getByRole('heading', { name: '4 letters' });
     const group = head.closest('section') as HTMLElement;
 
-    // The set count is one of the two four-letter set words.
-    expect(within(group).getByText('1 of 2')).toBeInTheDocument();
+    // No per-length count: the group head carries the length and nothing else.
+    expect(group.querySelector('.found__groupcount')).toBeNull();
+    expect(within(group).queryByText(/of \d+/i)).toBeNull();
 
-    // The counted set row lists near (the one set word), never the off-page sane.
-    const setRow = group.querySelector('.found__words--set') as HTMLElement;
-    expect(within(setRow).getByText('near')).toBeInTheDocument();
-    expect(within(setRow).queryByText('sane')).toBeNull();
+    // Both finds still appear in their length group, with their marks intact.
+    expect(within(group).getByText('near')).toBeInTheDocument();
+    expect(within(group).getByText('sane')).toBeInTheDocument();
+    expect(group.querySelector('.found__word--set .mark--set')).toBeTruthy();
+    const off = group.querySelector('.found__word--uncommon') as HTMLElement;
+    expect(off.querySelector('.mark--uncommon')).toBeTruthy();
+    expect(off.textContent).toMatch(/\+\d/);
+  });
 
-    // sane still appears in the glossary, just outside the set-counted row.
-    const glossary = screen.getByRole('region', { name: /words found/i });
-    expect(within(glossary).getByText('sane')).toBeInTheDocument();
+  it('leaves the top-level completion count as the only "X of Y" in the readout', () => {
+    const { container } = renderList(['near', 'sane']);
+    // Exactly one "N of M" anywhere: the top completion count.
+    const ofMatches = (container.textContent ?? '').match(/\d+\s+of\s+\d+/gi);
+    expect(ofMatches).toEqual(['1 of 6']); // 1 of 6 words; no per-length counts
   });
 });
 
