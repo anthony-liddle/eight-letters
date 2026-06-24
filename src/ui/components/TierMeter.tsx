@@ -86,12 +86,6 @@ export function TierMeter({ tier, theme }: Props) {
           </span>
         )}
       </div>
-      {/* The completion peak, an honest word count over words findable, distinct
-          from the points rank above. The one place an "X of Y" belongs. */}
-      <p className={'tier__completion' + (completed ? ' is-complete' : '')}>
-        {tier.setFound} of {tier.setTotal} words
-        {completed ? ', complete' : ''}
-      </p>
     </section>
   );
 }

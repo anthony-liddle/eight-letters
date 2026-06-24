@@ -126,7 +126,8 @@ export function Game({ data, audio, storage }: Props) {
         <FoundList
           puzzle={state.puzzle}
           found={state.found}
-          totalScore={state.totalScore}
+          tier={state.tier}
+          theme={theme}
           onWordTap={onWordTap}
           summaryExtra={
             state.mode === 'daily' ? (

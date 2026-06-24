@@ -1,16 +1,24 @@
 import { useMemo, type ReactNode } from 'react';
-import { classifyWord, findScore, type Puzzle } from '@/engine/index.ts';
+import {
+  classifyWord,
+  findScore,
+  type Puzzle,
+  type TierStanding,
+} from '@/engine/index.ts';
 import { LADDER_RUNGS, RUNG_NAMES, type LadderRung } from '../rarity.ts';
+import type { Theme } from '../useTheme.ts';
+import { crownName, tierName } from '../tierNames.ts';
 
 interface Props {
   puzzle: Puzzle;
   found: readonly string[];
   /**
-   * The score meter's value, the single source of truth shared with the
-   * completion bar's readout. The summary shows its composition (set points
-   * versus off-page points), which by construction sums back to this.
+   * The standing on the points ladder, the single source the bar also reads, so
+   * the totals and the bar can never diverge: the score, the set-versus-off-page
+   * split, the completion count, and the named tier all come from here.
    */
-  totalScore: number;
+  tier: TierStanding;
+  theme: Theme;
   /** Called when the player taps a found word to see its definition. */
   onWordTap: (word: string, trigger: HTMLElement) => void;
   /**
@@ -100,14 +108,22 @@ function pointWord(n: number): string {
 export function FoundList({
   puzzle,
   found,
-  totalScore,
+  tier,
+  theme,
   onWordTap,
   summaryExtra,
 }: Props) {
   const groups = useMemo(() => buildGroups(puzzle, found), [puzzle, found]);
 
-  const setTotal = puzzle.commonWords.size;
-  const setFound = found.filter((w) => puzzle.commonWords.has(w)).length;
+  // Completion is the set, the one place an X of Y belongs. The points split and
+  // total all come from the tier, the same source the bar reads.
+  const setFound = tier.setFound;
+  const setTotal = tier.setTotal;
+  const setPoints = tier.setPoints;
+  const offPagePoints = tier.offPagePoints;
+  const totalScore = tier.score;
+  const completed = setTotal > 0 && setFound >= setTotal;
+  const tierLabel = completed ? crownName(theme) : tierName(theme, tier.index);
 
   // Open-ended counts per rung: a tally, never a denominator. All three rungs
   // always show in the summary, so it reads as a stable totals block.
@@ -124,18 +140,6 @@ export function FoundList({
     return counts;
   }, [found, puzzle]);
 
-  // The score's composition: points from the set (the source word's points are
-  // set points, since it is a set word) versus points from off-page finds. The
-  // two partition every find, so they sum to totalScore by construction.
-  const setPoints = useMemo(() => {
-    let sum = 0;
-    for (const w of found) {
-      if (puzzle.commonWords.has(w)) sum += findScore(w, 'set');
-    }
-    return sum;
-  }, [found, puzzle]);
-  const offPagePoints = totalScore - setPoints;
-
   return (
     <section className="found" aria-label="Words found">
       <h2 className="found__title">The glossary</h2>
@@ -148,7 +152,7 @@ export function FoundList({
             <li className="summary__stat summary__stat--set">
               <span className="mark mark--set" aria-hidden="true" />
               <span className="summary__statline">
-                {setFound} of {setTotal} in the set
+                {setFound} of {setTotal} words
               </span>
             </li>
             {LADDER_RUNGS.map((r) => (
@@ -168,8 +172,14 @@ export function FoundList({
 
           <div className="summary__score">
             <p className="summary__scorehead">
-              <span className="summary__scorelabel">Score</span>
-              <span className="summary__scoretotal">{totalScore}</span>
+              <span
+                className={'summary__tier' + (completed ? ' is-complete' : '')}
+              >
+                {tierLabel}
+              </span>
+              <span className="summary__scoretotal">
+                {`${totalScore} ${pointWord(totalScore)}`}
+              </span>
             </p>
             {/* Subordinate to the completion bar: smaller, labelled, role=img not
               progressbar. The set segment is the status colour, the off-page

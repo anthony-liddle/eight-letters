@@ -206,8 +206,9 @@ describe('Game', () => {
     type('near');
     fireEvent.keyDown(window, { key: 'Enter' });
 
-    // The set counter is still a tally, but the bar is no longer tied to it.
-    expect(screen.getByText(/2 of 6 in the set/i)).toBeInTheDocument();
+    // The completion count is the single honest "X of Y" in the totals, but the
+    // bar is points, no longer tied to it.
+    expect(screen.getByText(/2 of 6 words/i)).toBeInTheDocument();
     const bar = screen.getByRole('progressbar');
     expect(bar).toHaveAttribute('aria-valuenow', '4'); // points, not the 2 of 6
   });
@@ -498,8 +499,9 @@ describe('Game edition complete', () => {
     );
     // ... but only one of the six common words is found, so no completion.
     expect(editionCard()).not.toBeInTheDocument();
-    const meter = screen.getByRole('region', { name: /progress/i });
-    expect(within(meter).getByText(/1 of 6 words/i)).toBeInTheDocument();
+    // The honest completion count lives in the totals now, distinct from the bar.
+    const totals = screen.getByRole('region', { name: /words found/i });
+    expect(within(totals).getByText(/1 of 6 words/i)).toBeInTheDocument();
   });
 
   it('keeps the source word and completion as independent crowns', () => {
