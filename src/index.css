@@ -1047,6 +1047,11 @@ button {
   flex-wrap: wrap;
   gap: 0.3rem 0.75rem;
 }
+/* Off-page finds of a length sit just under the set list, set apart so the
+   set count above never reads as describing them. */
+.found__words--offpage {
+  margin-top: 0.3rem;
+}
 .found__word-item {
   display: contents;
 }

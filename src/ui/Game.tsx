@@ -393,8 +393,9 @@ function Colophon({
     theme === 'cute' ? 'Fredoka and Nunito' : 'Fraunces and Spectral';
   return (
     <footer className="colophon">
-      Validation by ENABLE, public domain. Common words from SCOWL. Definitions
-      and etymologies from Wiktionary, CC BY-SA 4.0.
+      Validation by ENABLE and SCOWL, public domain, with a curated patch layer.
+      Common words from SCOWL. Definitions and etymologies from Wiktionary, CC
+      BY-SA 4.0.
       <br />
       Set in {fonts}.
       <br />

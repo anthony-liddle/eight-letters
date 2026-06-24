@@ -96,6 +96,28 @@ describe('FoundList score composition', () => {
   });
 });
 
+describe('FoundList per-length set counts', () => {
+  it('keeps a length set count and its shown chips describing the same set population', () => {
+    // 4-letter set words: near, dean (2 in the set). sane is a 4-letter off-page
+    // find, so it must not sit inside the "X of Y" set-counted row.
+    renderList(['near', 'sane']);
+    const head = screen.getByRole('heading', { name: '4 letters' });
+    const group = head.closest('section') as HTMLElement;
+
+    // The set count is one of the two four-letter set words.
+    expect(within(group).getByText('1 of 2')).toBeInTheDocument();
+
+    // The counted set row lists near (the one set word), never the off-page sane.
+    const setRow = group.querySelector('.found__words--set') as HTMLElement;
+    expect(within(setRow).getByText('near')).toBeInTheDocument();
+    expect(within(setRow).queryByText('sane')).toBeNull();
+
+    // sane still appears in the glossary, just outside the set-counted row.
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    expect(within(glossary).getByText('sane')).toBeInTheDocument();
+  });
+});
+
 describe('FoundList structure', () => {
   it('renders each word-length group as a section with a level-3 heading', () => {
     renderList(['serenade', 'sea', 'near', 'sneer']);

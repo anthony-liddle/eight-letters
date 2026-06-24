@@ -114,6 +114,17 @@ describe('Game', () => {
     expect(tiles).toHaveLength(8);
   });
 
+  it('credits the real validation boundary in the footer', () => {
+    renderGame();
+    const footer = document.querySelector('.colophon') as HTMLElement;
+    // Validation is ENABLE union SCOWL 95 plus the patch layer, not ENABLE alone.
+    expect(footer.textContent).toMatch(/ENABLE and SCOWL/i);
+    expect(footer.textContent).toMatch(/patch layer/i);
+    // The existing attributions stay intact.
+    expect(footer.textContent).toMatch(/SCOWL/);
+    expect(footer.textContent).toMatch(/Wiktionary, CC BY-SA 4\.0/i);
+  });
+
   it('accepts a typed word and prints it to the glossary', () => {
     renderGame();
     type('sea');
