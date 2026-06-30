@@ -11,6 +11,14 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # eslint-plugin-react-hooks v6+ adds React Compiler rules that flag
+      # intentional patterns in our core hooks. We do not use the React
+      # Compiler, so the major bump is not worth the churn. Revisit if we adopt
+      # the compiler. Minor and patch updates within v5 still flow through.
+      - dependency-name: 'eslint-plugin-react-hooks'
+        update-types:
+          - 'version-update:semver-major'
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
