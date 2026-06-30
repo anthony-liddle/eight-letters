@@ -7,3 +7,10 @@ import '@testing-library/jest-dom/vitest';
 if (typeof HTMLCanvasElement !== 'undefined') {
   HTMLCanvasElement.prototype.getContext = () => null;
 }
+
+// jsdom does not implement scrollIntoView. Completion uses it to bring the
+// persistent Share into view; stub it as a no-op so tests that drive completion
+// do not throw on the missing method. Production browsers implement it.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}

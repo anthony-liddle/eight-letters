@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import type { Puzzle } from '@/engine/index.ts';
 import { APP_DISPLAY_NAME } from '@/displayName.ts';
 import { buildShareText } from '../share/shareText.ts';
@@ -10,6 +10,11 @@ interface Props {
   found: readonly string[];
   /** The puzzle's date, shown short in the block. */
   date: Date;
+  /**
+   * A handle on the Share button itself, so completion can land the player on
+   * the durable Share once the celebration card is dismissed.
+   */
+  buttonRef?: Ref<HTMLButtonElement>;
 }
 
 /**
@@ -18,7 +23,7 @@ interface Props {
  * on desktop. The title is read from the display-name constant, never hardcoded,
  * so the pending rename flows through.
  */
-export function ShareButton({ puzzle, found, date }: Props) {
+export function ShareButton({ puzzle, found, date, buttonRef }: Props) {
   const [confirmation, setConfirmation] = useState<string | null>(null);
 
   async function onShare() {
@@ -39,7 +44,12 @@ export function ShareButton({ puzzle, found, date }: Props) {
 
   return (
     <div className="share">
-      <button type="button" className="btn share__btn" onClick={onShare}>
+      <button
+        type="button"
+        className="btn share__btn"
+        onClick={onShare}
+        ref={buttonRef}
+      >
         Share
       </button>
       {/* A polite live region for the copy confirmation. Announced via aria-live

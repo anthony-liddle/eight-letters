@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, within } from '@testing-library/react';
 import { TierMeter } from './TierMeter.tsx';
 import type { TierStanding } from '@/engine/index.ts';
 
@@ -53,6 +53,17 @@ describe('TierMeter', () => {
     );
     const bar = container.querySelector('[role="progressbar"]');
     expect(bar?.getAttribute('aria-valuenow')).toBe('30');
+  });
+
+  it('prints the explicit set and off-page point numbers beneath the bar', () => {
+    const { container } = render(
+      <TierMeter tier={standing()} theme="letterpress" />,
+    );
+    // The breakdown the glossary bar used to carry now lives on the one bar:
+    // the bold total above, the named set-versus-off-page split below.
+    const meter = container.querySelector('.tier') as HTMLElement;
+    expect(within(meter).getByText(/set\s+18/i)).toBeInTheDocument();
+    expect(within(meter).getByText(/off-page\s+12/i)).toBeInTheDocument();
   });
 
   it('holds the themed completion crown once every common word is found', () => {
