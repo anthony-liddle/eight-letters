@@ -578,6 +578,25 @@ describe('Game edition complete', () => {
     expect(text).not.toMatch(/serenade/i);
     expect(text).not.toMatch(/eased/i);
   });
+
+  it('lands on the persistent Share when the celebration is dismissed', () => {
+    // scrollIntoView is stubbed globally for jsdom; spy to assert it is called.
+    const scrollIntoView = vi.spyOn(HTMLElement.prototype, 'scrollIntoView');
+
+    renderGame();
+    completeTheSet();
+
+    // Dismissing the in-the-moment card hands her to the durable Share: it is
+    // scrolled into view and focused, so it never feels gone with the popup.
+    fireEvent.click(screen.getByRole('button', { name: /keep going/i }));
+
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    const share = within(glossary).getByRole('button', { name: /share/i });
+    expect(document.activeElement).toBe(share);
+    expect(scrollIntoView).toHaveBeenCalled();
+
+    scrollIntoView.mockRestore();
+  });
 });
 
 describe('Game edition confetti', () => {

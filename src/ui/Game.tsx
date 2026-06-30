@@ -83,6 +83,20 @@ export function Game({ data, audio, storage }: Props) {
 
   const closeQuiet = useCallback(() => setQuiet(null), []);
 
+  // Dismissing the completion card hands the player to the durable Share: the
+  // celebration is the in-the-moment offer, the glossary Share is the path that
+  // persists. Landing on it means the result never feels gone with the popup.
+  // The card is a fixed overlay, so the Share is already in place to scroll to.
+  const shareRef = useRef<HTMLButtonElement>(null);
+  const dismissEdition = useCallback(() => {
+    game.closeEdition();
+    const share = shareRef.current;
+    if (share) {
+      share.focus({ preventScroll: true });
+      share.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [game]);
+
   // Fire the cute confetti once, on the completion beat. The pulse increments
   // only on the completing submit, so a mode switch or a reload of an already
   // complete puzzle never re-fires. Cute only; suppressed under reduced motion.
@@ -133,6 +147,7 @@ export function Game({ data, audio, storage }: Props) {
                 puzzle={state.puzzle}
                 found={state.found}
                 date={new Date()}
+                buttonRef={shareRef}
               />
             ) : undefined
           }
@@ -147,7 +162,7 @@ export function Game({ data, audio, storage }: Props) {
       </div>
 
       {state.editionOpen && (
-        <EditionCard theme={theme} onClose={game.closeEdition} />
+        <EditionCard theme={theme} onClose={dismissEdition} />
       )}
 
       {confettiOn && <Confetti onDone={endConfetti} />}

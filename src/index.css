@@ -524,8 +524,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 1.15rem;
-  /* Height follows content; the tier bar sits directly under the composing
-     area rather than being pushed to the bottom of a stretched column. */
+  /* Height follows content rather than stretching the column, so the controls
+     sit directly under the composing area. */
   align-self: start;
 }
 
