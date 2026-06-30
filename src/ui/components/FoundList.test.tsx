@@ -88,11 +88,21 @@ describe('FoundList score composition', () => {
     expect(tier.setPoints).toBe(15);
     expect(tier.offPagePoints).toBe(4);
 
-    const breakdown = screen.getByRole('img', { name: /score breakdown/i });
-    expect(breakdown).toHaveAccessibleName(/15 set/i);
-    expect(breakdown).toHaveAccessibleName(/4 off-page/i);
+    // The one surviving bar carries the explicit split beneath it.
     expect(screen.getByText(/set\s+15/i)).toBeInTheDocument();
     expect(screen.getByText(/off-page\s+4/i)).toBeInTheDocument();
+  });
+
+  it('hosts the single progress bar in the glossary, not a subordinate breakdown', () => {
+    renderList(['serenade', 'sane']);
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    // One bar, and it is the real progressbar (the merged tier meter), living in
+    // the glossary. The old role="img" composition bar is gone.
+    const bars = within(glossary).getAllByRole('progressbar');
+    expect(bars).toHaveLength(1);
+    expect(
+      within(glossary).queryByRole('img', { name: /score breakdown/i }),
+    ).toBeNull();
   });
 });
 

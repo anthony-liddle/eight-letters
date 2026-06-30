@@ -224,24 +224,43 @@ describe('Game', () => {
     expect(bar).toHaveAttribute('aria-valuenow', '4'); // points, not the 2 of 6
   });
 
+  it('renders exactly one progress bar, and it lives in the glossary', () => {
+    renderGame();
+    type('sea');
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    // One bar on the screen, not two.
+    const bars = screen.getAllByRole('progressbar');
+    expect(bars).toHaveLength(1);
+
+    // The surviving bar sits in the glossary, where the totals live.
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    expect(within(glossary).getByRole('progressbar')).toBe(bars[0]);
+
+    // The standalone bar under the input is gone: the play column has none.
+    const play = document.querySelector('.play') as HTMLElement;
+    expect(play.querySelector('[role="progressbar"]')).toBeNull();
+  });
+
   it('lets an off-page find feed both the score and the bar', () => {
     renderGame();
-    const bar = screen.getByRole('progressbar');
-    const meter = screen.getByRole('region', { name: /progress/i });
-    expect(bar).toHaveAttribute('aria-valuenow', '0');
-    expect(within(meter).getByText('0 points')).toBeInTheDocument();
-
     // denar is mythic (off-page): 5 letters (5) plus the mythic bonus (4) = 9.
     type('denar');
     fireEvent.keyDown(window, { key: 'Enter' });
 
-    // The old set-fraction bar ignored off-page finds; the points bar climbs.
+    // The bar lives in the glossary now, appearing with the first find. The old
+    // set-fraction bar ignored off-page finds; the points bar climbs.
+    const bar = screen.getByRole('progressbar');
+    const meter = screen.getByRole('region', { name: /progress/i });
     expect(bar).toHaveAttribute('aria-valuenow', '9');
     expect(within(meter).getByText('9 points')).toBeInTheDocument();
   });
 
   it('updates the tier as common words are found', () => {
     renderGame();
+    // The bar appears with the first find, at the opening rank.
+    type('sea'); // 1 point of the reachable 32: still Blank Page.
+    fireEvent.keyDown(window, { key: 'Enter' });
     expect(screen.getByText('Blank Page')).toBeInTheDocument();
     type('serenade'); // 15 of the common total in one word
     fireEvent.keyDown(window, { key: 'Enter' });
@@ -530,6 +549,34 @@ describe('Game edition complete', () => {
     // The quiet completed state holds the themed crown on the meter.
     const meter = screen.getByRole('region', { name: /progress/i });
     expect(within(meter).getByText('The Complete Works')).toBeInTheDocument();
+  });
+
+  it('keeps Share available and working after the celebration is dismissed', async () => {
+    const writeText = vi.fn((_text: string) => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    renderGame();
+    completeTheSet();
+
+    // Dismiss the in-the-moment celebration card.
+    fireEvent.click(screen.getByRole('button', { name: /keep going/i }));
+    expect(editionCard()).not.toBeInTheDocument();
+
+    // The persistent Share is still in the glossary, the durable path home.
+    const glossary = screen.getByRole('region', { name: /words found/i });
+    const share = within(glossary).getByRole('button', { name: /share/i });
+    expect(share).toBeInTheDocument();
+
+    // It still works: it copies the same spoiler-free daily block that ships,
+    // carrying counts and points, never the source word or any found word.
+    fireEvent.click(share);
+    await screen.findByText(/copied\./i);
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const text = writeText.mock.calls[0]![0] as string;
+    expect(text).toMatch(/Set 6\/6 ✓/);
+    expect(text).toMatch(/pts/);
+    expect(text).not.toMatch(/serenade/i);
+    expect(text).not.toMatch(/eased/i);
   });
 });
 

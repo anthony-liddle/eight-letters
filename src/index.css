@@ -795,10 +795,13 @@ button {
   font-weight: 600;
   font-size: 1.15rem;
 }
+/* The bold points total: the heavier display weight the readout now carries as
+   the single home for the score, not the lighter aside it once was. */
 .tier__score {
-  font-size: 0.82rem;
-  color: var(--ink-soft);
-  letter-spacing: 0.04em;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
 }
 .tier__track {
   position: relative;
@@ -852,6 +855,40 @@ button {
   font-size: 0.8rem;
   color: var(--ink-soft);
   font-style: italic;
+}
+/* The named set-versus-off-page split beneath the bar, told apart by label and
+   value as well as colour, so it survives colour-blind play. */
+.tier__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.1rem;
+  margin: 0;
+  font-size: 0.74rem;
+}
+.tier__keyitem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36em;
+}
+.tier__keyitem--set {
+  color: var(--good);
+  font-weight: 600;
+}
+.tier__keyitem--offpage {
+  color: var(--discovery);
+  font-weight: 600;
+}
+.tier__swatch {
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+}
+.tier__swatch--set {
+  background: var(--good);
+}
+.tier__swatch--offpage {
+  background: var(--discovery);
 }
 /* The quiet completed crown the top label holds once every word is found. */
 .tier__label.is-complete {
@@ -914,82 +951,6 @@ button {
 .summary__stat--total .summary__statline {
   color: var(--ink);
   font-weight: 600;
-}
-
-.summary__scorehead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin: 0 0 0.4rem;
-}
-/* The named tier in the totals, the readout companion to the bar's label. */
-.summary__tier {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--ink);
-}
-.summary__tier.is-complete {
-  color: var(--crown-deep);
-}
-.summary__scoretotal {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--ink);
-}
-/* The composition bar: smaller and borderless, so it reads as subordinate to
-   the 12px completion bar. Two tones, set versus off-page, told apart by the
-   key's labels and values below as well as colour, so it survives colour-blind
-   play. The track shows through when the score is still zero. */
-.compbar {
-  display: flex;
-  height: 8px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--rule);
-}
-.compbar__seg {
-  display: block;
-  min-width: 0;
-}
-.compbar__seg--set {
-  background: var(--good);
-}
-.compbar__seg--offpage {
-  background: var(--discovery);
-}
-.compbar__key {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 1.1rem;
-  margin: 0.4rem 0 0;
-  font-size: 0.74rem;
-}
-.compbar__keyitem {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.36em;
-}
-.compbar__keyitem--set {
-  color: var(--good);
-  font-weight: 600;
-}
-.compbar__keyitem--offpage {
-  color: var(--discovery);
-  font-weight: 600;
-}
-.compbar__swatch {
-  flex: none;
-  width: 0.7em;
-  height: 0.7em;
-  border-radius: 2px;
-}
-.compbar__swatch--set {
-  background: var(--good);
-}
-.compbar__swatch--offpage {
-  background: var(--discovery);
 }
 
 /* The daily share, sitting under the score it brags about. A quiet outlined

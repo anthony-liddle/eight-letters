@@ -4,7 +4,6 @@ import type { AudioEngine } from '@/audio/AudioEngine.ts';
 import { GameStorage } from '@/persistence/storage.ts';
 import { useGame, type GameApi } from './useGame.ts';
 import { useTheme, type Theme } from './useTheme.ts';
-import { TierMeter } from './components/TierMeter.tsx';
 import { FoundList } from './components/FoundList.tsx';
 import { ShareButton } from './components/ShareButton.tsx';
 import { Reveal, type QuietCategory } from './components/Reveal.tsx';
@@ -120,7 +119,6 @@ export function Game({ data, audio, storage }: Props) {
           >
             {state.message?.text ?? ' '}
           </p>
-          <TierMeter tier={state.tier} theme={theme} />
         </div>
 
         <FoundList

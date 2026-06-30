@@ -7,7 +7,7 @@ import {
 } from '@/engine/index.ts';
 import { LADDER_RUNGS, RUNG_NAMES, type LadderRung } from '../rarity.ts';
 import type { Theme } from '../useTheme.ts';
-import { crownName, tierName } from '../tierNames.ts';
+import { TierMeter } from './TierMeter.tsx';
 
 interface Props {
   puzzle: Puzzle;
@@ -108,11 +108,6 @@ function isLadder(category: Category): category is LadderRung {
   return category !== 'set' && category !== 'source';
 }
 
-/** "point" or "points", for prose like aria labels. */
-function pointWord(n: number): string {
-  return n === 1 ? 'point' : 'points';
-}
-
 export function FoundList({
   puzzle,
   found,
@@ -123,15 +118,10 @@ export function FoundList({
 }: Props) {
   const groups = useMemo(() => buildGroups(puzzle, found), [puzzle, found]);
 
-  // Completion is the set, the one place an X of Y belongs. The points split and
-  // total all come from the tier, the same source the bar reads.
+  // Completion is the set, the one place an X of Y belongs. The count comes from
+  // the tier, the same source the bar reads, so the two can never diverge.
   const setFound = tier.setFound;
   const setTotal = tier.setTotal;
-  const setPoints = tier.setPoints;
-  const offPagePoints = tier.offPagePoints;
-  const totalScore = tier.score;
-  const completed = setTotal > 0 && setFound >= setTotal;
-  const tierLabel = completed ? crownName(theme) : tierName(theme, tier.index);
 
   // Open-ended counts per rung: a tally, never a denominator. All three rungs
   // always show in the summary, so it reads as a stable totals block.
@@ -208,55 +198,11 @@ export function FoundList({
             </li>
           </ul>
 
-          <div className="summary__score">
-            <p className="summary__scorehead">
-              <span
-                className={'summary__tier' + (completed ? ' is-complete' : '')}
-              >
-                {tierLabel}
-              </span>
-              <span className="summary__scoretotal">
-                {`${totalScore} ${pointWord(totalScore)}`}
-              </span>
-            </p>
-            {/* Subordinate to the completion bar: smaller, labelled, role=img not
-              progressbar. The set segment is the status colour, the off-page
-              segment the discovery colour, the same green-equals-set,
-              blue-equals-off-page language as the marks. Segments are told apart
-              by label and value too, so the split survives colour-blind play. */}
-            <div
-              className="compbar"
-              role="img"
-              aria-label={`Score breakdown: ${setPoints} set ${pointWord(setPoints)}, ${offPagePoints} off-page ${pointWord(offPagePoints)}`}
-            >
-              <span
-                className="compbar__seg compbar__seg--set"
-                style={{ flexGrow: setPoints }}
-                aria-hidden="true"
-              />
-              <span
-                className="compbar__seg compbar__seg--offpage"
-                style={{ flexGrow: offPagePoints }}
-                aria-hidden="true"
-              />
-            </div>
-            <p className="compbar__key">
-              <span className="compbar__keyitem compbar__keyitem--set">
-                <span
-                  className="compbar__swatch compbar__swatch--set"
-                  aria-hidden="true"
-                />
-                Set {setPoints}
-              </span>
-              <span className="compbar__keyitem compbar__keyitem--offpage">
-                <span
-                  className="compbar__swatch compbar__swatch--offpage"
-                  aria-hidden="true"
-                />
-                Off-page {offPagePoints}
-              </span>
-            </p>
-          </div>
+          {/* The one progress bar, here in the glossary where the totals live.
+              It carries the named tier, the bold points total, the two-color
+              set-versus-off-page climb, and the explicit Set and Off-page numbers
+              beneath it. There is no second bar under the input. */}
+          <TierMeter tier={tier} theme={theme} />
 
           {summaryExtra}
         </div>

@@ -86,6 +86,22 @@ export function TierMeter({ tier, theme }: Props) {
           </span>
         )}
       </div>
+      {/* The explicit split beneath the bar: the same set-versus-off-page points
+          the two-color fill shows, named and numbered so it survives colour-blind
+          play and reads without decoding the bar. */}
+      <p className="tier__key">
+        <span className="tier__keyitem tier__keyitem--set">
+          <span className="tier__swatch tier__swatch--set" aria-hidden="true" />
+          Set {tier.setPoints}
+        </span>
+        <span className="tier__keyitem tier__keyitem--offpage">
+          <span
+            className="tier__swatch tier__swatch--offpage"
+            aria-hidden="true"
+          />
+          Off-page {tier.offPagePoints}
+        </span>
+      </p>
     </section>
   );
 }
