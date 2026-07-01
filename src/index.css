@@ -1,5 +1,5 @@
 /* =========================================================================
-   8 Letters in Search of a Word
+   Peach of a Word
    Aesthetic: a printer's composing room. Ink on warm paper, metal type sorts,
    a second-colour (oxblood) pass reserved for the crown. Lo-fi, quiet, typeset.
    ========================================================================= */
@@ -1584,6 +1584,14 @@ footer.colophon {
 }
 footer.colophon a {
   color: var(--ink-soft);
+}
+/* The dedication: set apart from the credits by a hair of space, italic and
+   faint so it reads as an aside, not a line of the colophon. Present in both
+   themes; it inherits the theme ink like the rest of the footer. */
+.colophon__dedication {
+  margin: 0.9rem 0 0;
+  font-style: italic;
+  color: var(--ink-faint);
 }
 
 /* ---- Reduced motion ----------------------------------------------------- */
