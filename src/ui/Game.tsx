@@ -196,7 +196,7 @@ function Masthead() {
     <header className="masthead">
       <p className="masthead__kicker">A game for finding the long word</p>
       <h1 className="masthead__title">
-        8 Letters in Search of a <em>Word</em>
+        <em>Peach</em> of a Word
       </h1>
       <p className="masthead__rule">Set the type</p>
     </header>
@@ -422,6 +422,9 @@ function Colophon({
       >
         How the words work
       </button>
+      {/* The title says what the game is to everyone; this says who it is for
+          to the one person meant to notice it. Unornamented on purpose. */}
+      <p className="colophon__dedication">for Bea</p>
     </footer>
   );
 }

@@ -125,6 +125,32 @@ describe('Game', () => {
     expect(footer.textContent).toMatch(/Wiktionary, CC BY-SA 4\.0/i);
   });
 
+  it('names the game in the masthead, emphasizing Peach', () => {
+    renderGame();
+    const title = screen.getByRole('heading', { name: 'Peach of a Word' });
+    expect(title).toBeInTheDocument();
+    // The mark carries the emphasis, set in italic accent by the stylesheet.
+    const emphasis = title.querySelector('em');
+    expect(emphasis?.textContent).toBe('Peach');
+  });
+
+  it('carries the quiet dedication in the footer', () => {
+    renderGame();
+    const footer = document.querySelector('.colophon') as HTMLElement;
+    expect(footer.textContent).toMatch(/for Bea/);
+  });
+
+  it('keeps the dedication present in the cute theme too', () => {
+    document.documentElement.dataset.theme = 'cute';
+    try {
+      renderGame();
+      const footer = document.querySelector('.colophon') as HTMLElement;
+      expect(footer.textContent).toMatch(/for Bea/);
+    } finally {
+      document.documentElement.dataset.theme = 'letterpress';
+    }
+  });
+
   it('accepts a typed word and prints it to the glossary', () => {
     renderGame();
     type('sea');

@@ -32,12 +32,12 @@ const BRAND = {
   foot: 'rgba(33, 29, 23, 0.15)',
 };
 
-const SITE_NAME = '8 Letters in Search of a Word';
-const SHORT_NAME = '8 Letters';
+const SITE_NAME = 'Peach of a Word';
+const SHORT_NAME = 'Peach';
 const DESCRIPTION =
-  'Make words from eight scrambled letters, then find the source word they all came from. A quiet daily word game.';
+  'Peach of a Word. Make words from eight scrambled letters, then find the source word they all came from. A quiet daily word game.';
 const OG_ALT =
-  'The wordmark 8 Letters in Search of a Word above a row of letterpress type sorts, one in amber.';
+  'The wordmark Peach of a Word above a row of letterpress type sorts, one in amber.';
 
 // --- Square icon (the type sort bearing an 8) ----------------------------
 
@@ -107,8 +107,7 @@ function ogSvg(): string {
   <rect x="${mx}" y="64" width="${W - 2 * mx}" height="3" fill="${BRAND.ink}"/>
   <rect x="${mx}" y="72" width="${W - 2 * mx}" height="1.5" fill="${BRAND.ink}"/>
   <text x="${cx}" y="150" font-family="Fraunces" font-weight="600" font-size="27" letter-spacing="7" fill="${BRAND.sage}" text-anchor="middle">A QUIET DAILY WORD GAME</text>
-  <text x="${cx}" y="258" font-family="Fraunces" font-weight="600" font-size="92" fill="${BRAND.ink}" text-anchor="middle">8 Letters in Search</text>
-  <text x="${cx}" y="350" font-family="Fraunces" font-weight="600" font-size="92" fill="${BRAND.ink}" text-anchor="middle">of a Word</text>
+  <text x="${cx}" y="316" font-family="Fraunces" font-weight="600" font-size="108" fill="${BRAND.ink}" text-anchor="middle">${SITE_NAME}</text>
   ${sorts}
 </svg>`;
 }
