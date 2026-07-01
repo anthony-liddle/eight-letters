@@ -3,8 +3,6 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    // A handful of data tests under src read fixtures with node:fs. TypeScript 6
-    // needs node's ambient types to resolve node: imports, where 5.x was lenient.
     "types": ["node"],
     "module": "ESNext",
     "skipLibCheck": true,
