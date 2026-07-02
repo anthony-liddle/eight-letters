@@ -44,6 +44,9 @@ describe('ShareButton', () => {
       value: originalClipboard,
       configurable: true,
     });
+    // The share reads the active theme from the document root; reset it so a
+    // theme set by one test never leaks into the next.
+    document.documentElement.removeAttribute('data-theme');
     vi.restoreAllMocks();
   });
 
@@ -72,6 +75,26 @@ describe('ShareButton', () => {
     // The title is read from the display-name constant, not hardcoded here.
     expect(payload.text?.startsWith(APP_DISPLAY_NAME)).toBe(true);
     expect(payload.text).toContain('🟥');
+  });
+
+  test('headlines the theme-skinned tier the player earned', async () => {
+    // The share must match the theme the player saw. With one common word found
+    // (not the full set), the headline is the current rank, letterpress-skinned.
+    document.documentElement.dataset.theme = 'letterpress';
+    const share = vi.fn().mockResolvedValue(undefined);
+    setShare(share);
+
+    render(
+      <ShareButton
+        puzzle={testPuzzle()}
+        found={['NOTECASE', 'OCAS']}
+        date={new Date(2026, 5, 18)}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /share/i }));
+
+    const payload = share.mock.calls[0]![0] as ShareData;
+    expect(payload.text?.split('\n')[1]).toBe('Blank Page');
   });
 
   test('falls back to clipboard and shows the confirmation', async () => {

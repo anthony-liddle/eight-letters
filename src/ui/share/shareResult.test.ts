@@ -37,6 +37,7 @@ describe('dailyShareResult', () => {
       found,
       new Date(2026, 5, 18),
       'Peach of a Word',
+      'cute',
     );
 
     expect(result.title).toBe('Peach of a Word');
@@ -57,6 +58,7 @@ describe('dailyShareResult', () => {
       ['NOTECASE'],
       new Date(2026, 5, 18),
       'Peach of a Word',
+      'cute',
     );
     expect(result.setFound).toBe(1);
     expect(result.uncommon + result.rare + result.mythic).toBe(0);
@@ -71,8 +73,57 @@ describe('dailyShareResult', () => {
       found,
       new Date(2026, 5, 18),
       'Peach of a Word',
+      'cute',
     );
     expect(result.sourceWord).toBe('NOTECASE');
     expect(result.foundWords).toEqual(found);
+  });
+
+  describe('the earned tier headline', () => {
+    test('is the completion crown once every common word is found', () => {
+      const found = ['NOTECASE', 'NOTE', 'TONE', 'CAT'];
+      const cute = dailyShareResult(
+        testPuzzle(),
+        found,
+        new Date(2026, 5, 18),
+        'Peach of a Word',
+        'cute',
+      );
+      const classic = dailyShareResult(
+        testPuzzle(),
+        found,
+        new Date(2026, 5, 18),
+        'Peach of a Word',
+        'letterpress',
+      );
+      // All four common words found: the crown, theme-skinned.
+      expect(cute.setFound).toBe(cute.setTotal);
+      expect(cute.tierLabel).toBe('Peachy Keen Supreme');
+      expect(classic.tierLabel).toBe('The Complete Works');
+    });
+
+    test('is the current named rank on an incomplete board, theme-skinned', () => {
+      // reachableScore 30, one 8-letter set word (15 points) is fraction 0.50,
+      // which lands on rank index 3 of the six-rung ladder. Not completed, since
+      // only one of several common words is found: a rank headline, not a crown.
+      const puzzle: Puzzle = { ...testPuzzle(), reachableScore: 30 };
+      const cute = dailyShareResult(
+        puzzle,
+        ['NOTECASE'],
+        new Date(2026, 5, 18),
+        'Peach of a Word',
+        'cute',
+      );
+      const classic = dailyShareResult(
+        puzzle,
+        ['NOTECASE'],
+        new Date(2026, 5, 18),
+        'Peach of a Word',
+        'letterpress',
+      );
+      expect(cute.setFound).toBeLessThan(cute.setTotal);
+      expect(cute.tierLabel).toBe('Ripening');
+      expect(classic.tierLabel).toBe('Press Run');
+    });
   });
 });
