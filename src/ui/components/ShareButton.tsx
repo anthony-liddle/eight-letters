@@ -1,6 +1,7 @@
 import { useState, type Ref } from 'react';
 import type { Puzzle } from '@/engine/index.ts';
 import { APP_DISPLAY_NAME } from '@/displayName.ts';
+import { useTheme } from '../useTheme.ts';
 import { buildShareText } from '../share/shareText.ts';
 import { dailyShareResult } from '../share/shareResult.ts';
 import { shareDaily } from '../share/shareDaily.ts';
@@ -25,10 +26,11 @@ interface Props {
  */
 export function ShareButton({ puzzle, found, date, buttonRef }: Props) {
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [theme] = useTheme();
 
   async function onShare() {
     const text = buildShareText(
-      dailyShareResult(puzzle, found, date, APP_DISPLAY_NAME),
+      dailyShareResult(puzzle, found, date, APP_DISPLAY_NAME, theme),
     );
     try {
       const outcome = await shareDaily(text);

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { COPY_CONFIRMATION, shareDaily } from './shareDaily.ts';
 
-const BLOCK = 'Peach of a Word · Jun 18\nSet 37/37 ✓\n226 pts';
+const BLOCK = '🍑 Peach of a Word · Jun 18\nPeachy Keen Supreme\n226 pts';
 
 describe('shareDaily', () => {
   let originalShare: unknown;

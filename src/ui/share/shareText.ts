@@ -14,9 +14,17 @@ export interface DailyShareResult {
   readonly title: string;
   /** The puzzle's date, shown short so the group compares the same rack. */
   readonly date: Date;
-  /** Set words found (the "X" of "X of Y"). */
+  /**
+   * The earned tier headline, theme-skinned: the completion crown once every
+   * common word is found, otherwise the current named rank. Read from the
+   * tier-name source (crownName/tierName), never a copy, so it matches what the
+   * player saw and cannot go stale. This is the share's lead, replacing the
+   * retired set-completion headline.
+   */
+  readonly tierLabel: string;
+  /** Common words found. Still tallied for the crown, no longer a headline. */
   readonly setFound: number;
-  /** Total set words (the "Y" of "X of Y"). */
+  /** Total common words in the rack. Drives the completion crown. */
   readonly setTotal: number;
   /** Off-page finds on each rung; a rung at zero is omitted from the block. */
   readonly uncommon: number;
@@ -98,10 +106,15 @@ function rarityLine(
 
 /** Build the exact, spoiler-free share block for a day's result. */
 export function buildShareText(result: DailyShareResult): string {
-  const check = result.setFound === result.setTotal ? ' ✓' : '';
+  // Lead with the name and the earned tier. The tier is the hook and the honest
+  // new model; the retired "Set X/Y" gate is gone. Points support, they do not
+  // lead. The tier label carries the completion signal on a finished board.
   const lines = [
-    `${result.title} · ${shortDate(result.date)}`,
-    `Set ${result.setFound}/${result.setTotal}${check}`,
+    // The peach leads the title line: the name's mark and the share's signature,
+    // the same in both themes. It stays on the title, never the body, so the
+    // spoiler guard (which strips the title as chrome) is untouched.
+    `🍑 ${result.title} · ${shortDate(result.date)}`,
+    result.tierLabel,
     scoreRow(result.setPoints, result.offPagePoints),
   ];
   const rarity = rarityLine(result.uncommon, result.rare, result.mythic);

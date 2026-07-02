@@ -11,6 +11,7 @@ function exampleResult(
   return {
     title: 'Peach of a Word',
     date: new Date(2026, 5, 18),
+    tierLabel: 'Peachy Keen Supreme',
     setFound: 37,
     setTotal: 37,
     uncommon: 29,
@@ -25,11 +26,25 @@ function exampleResult(
   };
 }
 
+/**
+ * The share body, with the chrome removed. The name (line 1) and the tier
+ * headline (line 2) are chrome: they can legitimately share letters with a found
+ * word (the tier "The Complete Works" contains "Works") without that being a
+ * leak. Stripping them by value leaves only the lines that must never carry a
+ * word, so the spoiler assertion scopes to the real risk.
+ */
+function shareBody(out: string, result: DailyShareResult): string {
+  return out
+    .toUpperCase()
+    .replace(result.title.toUpperCase(), '')
+    .replace(result.tierLabel.toUpperCase(), '');
+}
+
 describe('buildShareText', () => {
   test('produces the exact block for the worked example', () => {
     const expected = [
-      'Peach of a Word · Jun 18',
-      'Set 37/37 ✓',
+      '🍑 Peach of a Word · Jun 18',
+      'Peachy Keen Supreme',
       '🟥🟥🟥🟥🟥🟪🟪🟪🟪🟪',
       '✦ 29 Uncommon · 4 Rare · 2 Mythic',
       '226 pts',
@@ -40,8 +55,28 @@ describe('buildShareText', () => {
 
   test('reads the title from the result, never a hardcoded name', () => {
     const out = buildShareText(exampleResult({ title: 'Renamed Game' }));
-    expect(out.startsWith('Renamed Game · ')).toBe(true);
+    expect(out.startsWith('🍑 Renamed Game · ')).toBe(true);
     expect(out).not.toContain('Peach of a Word');
+  });
+
+  test('leads the title line with the peach mark', () => {
+    // The peach is the name's mark and the share signature; it rides the title
+    // line for every board, never the tier headline or the body.
+    const out = buildShareText(exampleResult({ title: 'Anything' }));
+    expect(out.split('\n')[0]).toBe('🍑 Anything · Jun 18');
+  });
+
+  describe('the tier headline', () => {
+    test('leads with the earned tier on the second line, not the set', () => {
+      const out = buildShareText(
+        exampleResult({ tierLabel: 'The Complete Works' }),
+      );
+      expect(out.split('\n')[1]).toBe('The Complete Works');
+    });
+
+    test('never prints the retired Set X/Y line', () => {
+      expect(buildShareText(exampleResult())).not.toMatch(/Set \d+\/\d+/);
+    });
   });
 
   describe('spoiler safety', () => {
@@ -55,34 +90,33 @@ describe('buildShareText', () => {
         'NICHE',
         'CHAIN',
       ];
-      // A neutral title, so the assertion isolates the builder's word fields:
-      // a real game title like "Peach of a Word" could share letters with a
-      // found word ("PEACH") without that being a leak.
-      const out = buildShareText(
-        exampleResult({ title: 'Daily Game', sourceWord, foundWords }),
-      ).toUpperCase();
+      const result = exampleResult({ sourceWord, foundWords });
+      const body = shareBody(buildShareText(result), result);
 
-      expect(out).not.toContain(sourceWord);
+      expect(body).not.toContain(sourceWord);
       for (const word of foundWords) {
-        expect(out).not.toContain(word);
+        expect(body).not.toContain(word);
       }
     });
-  });
 
-  describe('the completion check', () => {
-    test('appears only at 100 percent', () => {
-      const complete = buildShareText(
-        exampleResult({ setFound: 37, setTotal: 37 }),
-      );
-      expect(complete).toContain('Set 37/37 ✓');
-    });
-
-    test('is absent at 36 of 37', () => {
-      const nearly = buildShareText(
-        exampleResult({ setFound: 36, setTotal: 37 }),
-      );
-      expect(nearly).toContain('Set 36/37');
-      expect(nearly).not.toContain('✓');
+    test('treats the title and tier line as chrome, not leaked words', () => {
+      // A found word that also spells part of the chrome: the crown "The
+      // Complete Works" carries "Works", and the name carries "Peach". Neither
+      // is a leak, and the body still holds no word.
+      const result = exampleResult({
+        title: 'Peach of a Word',
+        tierLabel: 'The Complete Works',
+        sourceWord: 'WORKS',
+        foundWords: ['WORKS', 'PEACH'],
+      });
+      const out = buildShareText(result).toUpperCase();
+      // The chrome legitimately contains the words...
+      expect(out).toContain('WORKS');
+      expect(out).toContain('PEACH');
+      // ...but the body, with the chrome stripped, leaks nothing.
+      const body = shareBody(out, result);
+      expect(body).not.toContain('WORKS');
+      expect(body).not.toContain('PEACH');
     });
   });
 
