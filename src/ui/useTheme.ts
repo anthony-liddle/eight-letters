@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { applyFavicon } from './favicon.ts';
 
 export type Theme = 'letterpress' | 'cute';
 
@@ -35,6 +36,9 @@ function readTheme(): Theme {
 
 function setTheme(next: Theme): void {
   document.documentElement.dataset.theme = next;
+  // The tab icon follows the theme too. The pre-paint script sets the initial
+  // one; this keeps it in step on every toggle.
+  applyFavicon(next);
   try {
     localStorage.setItem(STORAGE_KEY, next);
   } catch {

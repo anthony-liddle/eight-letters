@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_THEME } from './ui/useTheme.ts';
+import { faviconHref } from './ui/favicon.ts';
 
 /**
  * The static document head holds its own copies of the name, separate from the
@@ -93,6 +94,42 @@ describe('static chrome and splash color', () => {
   test('the manifest theme and background colors are the cute background', () => {
     expect(manifest.theme_color.toLowerCase()).toBe(CUTE_BG);
     expect(manifest.background_color.toLowerCase()).toBe(CUTE_BG);
+  });
+});
+
+describe('index.html favicon', () => {
+  test('the retired 8-tile favicon is gone from production', () => {
+    expect(html).not.toContain('/favicon.ico');
+    expect(html).not.toContain('/favicon.svg');
+    const publicDir = resolve(process.cwd(), 'public');
+    expect(existsSync(resolve(publicDir, 'favicon.ico'))).toBe(false);
+    expect(existsSync(resolve(publicDir, 'favicon.svg'))).toBe(false);
+  });
+
+  test('the declared favicon default matches the default theme mark', () => {
+    // The no-preference visitor never has the inline script swap the icon, so
+    // this baked-in href is what the tab shows first. It must be the default
+    // theme's mark, or a fresh load flashes the wrong icon before JS runs.
+    // [^>]* spans the multiline link element (any char but the closing '>').
+    const href = faviconHref(DEFAULT_THEME).replace(/\./g, '\\.');
+    expect(html).toMatch(new RegExp(`<link[^>]*rel="icon"[^>]*href="${href}"`));
+  });
+
+  test('both theme marks resolve on disk', () => {
+    const publicDir = resolve(process.cwd(), 'public');
+    for (const theme of ['cute', 'letterpress'] as const) {
+      const file = faviconHref(theme).replace(/^\//, '');
+      expect(existsSync(resolve(publicDir, file))).toBe(true);
+    }
+  });
+
+  test('the pre-paint script points the icon at the resolved theme', () => {
+    // The same early script that sets data-theme also sets the favicon, so the
+    // tab is correct before any module loads. It reads the icon element and
+    // knows both theme marks.
+    expect(html).toContain("getElementById('favicon')");
+    expect(html).toContain('/favicon-cute.svg');
+    expect(html).toContain('/favicon-classic.svg');
   });
 });
 
