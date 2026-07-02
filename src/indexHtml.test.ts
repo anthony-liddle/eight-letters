@@ -74,6 +74,28 @@ describe('index.html theme default', () => {
   });
 });
 
+describe('static chrome and splash color', () => {
+  // theme-color (the address-bar tint) and the manifest colors (the PWA splash)
+  // are read before any JS runs, so they cannot follow a runtime theme toggle.
+  // They always show one theme; cute is the right static choice now that cute is
+  // the default and the launch origin starts empty for everyone.
+  const CUTE_BG = '#fff4ee';
+  const manifest = JSON.parse(
+    readFileSync(resolve(process.cwd(), 'public/site.webmanifest'), 'utf8'),
+  ) as { theme_color: string; background_color: string };
+
+  test('the theme-color meta is the cute background', () => {
+    expect(html.toLowerCase()).toContain(
+      `<meta name="theme-color" content="${CUTE_BG}" />`,
+    );
+  });
+
+  test('the manifest theme and background colors are the cute background', () => {
+    expect(manifest.theme_color.toLowerCase()).toBe(CUTE_BG);
+    expect(manifest.background_color.toLowerCase()).toBe(CUTE_BG);
+  });
+});
+
 describe('index.html share image', () => {
   test('references the OG and Twitter image at the same path', () => {
     expect(html).toMatch(/property="og:image" content="[^"]*\/og\.png"/);

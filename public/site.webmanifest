@@ -4,8 +4,8 @@
   "description": "Peach of a Word. Make words from eight scrambled letters, then find the source word they all came from. A quiet daily word game.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F1EEE6",
-  "theme_color": "#F1EEE6",
+  "background_color": "#FFF4EE",
+  "theme_color": "#FFF4EE",
   "icons": [
     {
       "src": "/icon-192.png",

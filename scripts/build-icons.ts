@@ -230,8 +230,11 @@ async function main(): Promise<void> {
     description: DESCRIPTION,
     start_url: '/',
     display: 'standalone',
-    background_color: BRAND.paper,
-    theme_color: BRAND.paper,
+    // The splash and chrome tint follow the default theme, which is now cute.
+    // Static values (read before any JS), so they show one theme regardless of
+    // a runtime toggle; cute is the right default-facing choice.
+    background_color: CUTE.paperTop,
+    theme_color: CUTE.paperTop,
     icons: [
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
