@@ -3,18 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script>
-      // No-flash theme: apply the saved theme before the first paint.
-      (function () {
-        try {
-          var t = localStorage.getItem('e8-theme');
-          if (t === 'cute' || t === 'letterpress')
-            document.documentElement.dataset.theme = t;
-        } catch (e) {
-          /* storage blocked: fall back to the default attribute */
-        }
-      })();
-    </script>
     <title>Peach of a Word</title>
     <meta
       name="description"
@@ -23,11 +11,38 @@
     <meta name="theme-color" content="#fff4ee" />
     <link rel="canonical" href="%VITE_SITE_URL%/" />
 
-    <!-- Icons -->
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- Icons: the tab icon follows the theme. It is set before the first paint
+         by the script below and swapped on toggle. The default is the cute
+         peach, the default theme, so a fresh visitor never sees a stale icon. -->
+    <link
+      rel="icon"
+      id="favicon"
+      href="/favicon-cute.svg"
+      type="image/svg+xml"
+    />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <script>
+      // No-flash theme and tab icon: resolve the saved theme (or the default)
+      // and apply both to the document and the favicon before the first paint,
+      // so a fresh visitor never sees the wrong theme or a stale icon.
+      (function () {
+        var DEFAULT = 'cute';
+        var saved;
+        try {
+          saved = localStorage.getItem('e8-theme');
+        } catch (e) {
+          saved = null; /* storage blocked: fall back to the default */
+        }
+        var theme =
+          saved === 'cute' || saved === 'letterpress' ? saved : DEFAULT;
+        document.documentElement.dataset.theme = theme;
+        var icon = document.getElementById('favicon');
+        if (icon)
+          icon.href =
+            theme === 'cute' ? '/favicon-cute.svg' : '/favicon-classic.svg';
+      })();
+    </script>
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />

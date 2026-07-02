@@ -7,14 +7,13 @@
  *   pnpm icons:build
  *
  * Outputs to public/:
- *   favicon.svg, favicon.ico, apple-touch-icon.png,
- *   icon-192.png, icon-512.png, icon-maskable-512.png,
+ *   favicon-cute.svg, favicon-classic.svg (the theme-aware tab icons),
+ *   apple-touch-icon.png, icon-192.png, icon-512.png, icon-maskable-512.png,
  *   og.png (1200x630), site.webmanifest
  */
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
-import pngToIco from 'png-to-ico';
 import {
   loadFraunces,
   loadCuteFonts,
@@ -91,26 +90,63 @@ function squareSvg(font: Fraunces['display'], opts: SquareOpts): string {
 </svg>`;
 }
 
-// --- Open Graph image (1200x630) -----------------------------------------
+// --- Shared marks --------------------------------------------------------
 
 /**
  * The smiling peach mark, the same original art the app draws in the cute theme
- * (Decorations peach1), scaled from its 0-100 viewBox onto the card and centered
- * on cx at the given top y. It ties the share card to the face of the game.
+ * (Decorations peach1), on its native 0-100 canvas. Shared by the OG card and
+ * the cute favicon so the icon system is one peach.
  */
-function peachMark(cx: number, top: number, size: number): string {
-  const s = size / 100;
-  const x = cx - size / 2;
-  return `<g transform="translate(${x} ${top}) scale(${s})">
-    <path d="M50 12c4-8 14-9 18-4-2 6-9 9-14 8z" fill="#8FD3B6"/>
+const PEACH_MARK_PATHS = `<path d="M50 12c4-8 14-9 18-4-2 6-9 9-14 8z" fill="#8FD3B6"/>
     <path d="M50 16c20 0 34 16 34 36 0 22-16 38-34 38S16 74 16 52c0-20 14-36 34-36z" fill="#FFC27A"/>
     <path d="M50 16c-9 0-17 4-23 11 7 4 15 5 23 5s16-1 23-5c-6-7-14-11-23-11z" fill="#FFD79B" opacity=".7"/>
     <circle cx="40" cy="58" r="3.4" fill="#7A4A33"/>
     <circle cx="60" cy="58" r="3.4" fill="#7A4A33"/>
     <circle cx="34" cy="66" r="4.5" fill="#FF9DAE" opacity=".7"/>
     <circle cx="66" cy="66" r="4.5" fill="#FF9DAE" opacity=".7"/>
-    <path d="M45 67c3 3 7 3 10 0" stroke="#7A4A33" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M45 67c3 3 7 3 10 0" stroke="#7A4A33" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+
+/** The peach mark placed on the card, centered on cx at the given top y. */
+function peachMark(cx: number, top: number, size: number): string {
+  const s = size / 100;
+  const x = cx - size / 2;
+  return `<g transform="translate(${x} ${top}) scale(${s})">
+    ${PEACH_MARK_PATHS}
   </g>`;
+}
+
+// --- Theme-aware favicons ------------------------------------------------
+
+/** The cute tab icon: the peach mark on its own, on a transparent field. */
+function faviconCuteSvg(): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    ${PEACH_MARK_PATHS}
+</svg>`;
+}
+
+/**
+ * The classic tab icon: the source-word crown, the same silhouette the app draws
+ * for the source-word mark (.mark--source), in the letterpress amber with an ink
+ * outline for the two-colour press feel and definition at small sizes. Centered
+ * with padding so it reads down to 16px.
+ */
+function faviconClassicSvg(): string {
+  // The .mark--source polygon (three peaks on a base), mapped from its percent
+  // coordinates onto a centered box in the 0-100 canvas.
+  const points = [
+    [15, 78],
+    [15, 42.2],
+    [30.4, 55.6],
+    [50, 32.1],
+    [69.6, 55.6],
+    [85, 42.2],
+    [85, 78],
+  ]
+    .map(([x, y]) => `${x},${y}`)
+    .join(' ');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <polygon points="${points}" fill="${BRAND.crown}" stroke="${BRAND.ink}" stroke-width="4" stroke-linejoin="round"/>
+</svg>`;
 }
 
 function ogSvg(): string {
@@ -193,9 +229,8 @@ async function main(): Promise<void> {
   await ensureDir(PUBLIC_DIR);
   const fraunces = await loadFraunces();
 
-  // Square sources: a transparent tile for the favicon, a paper-backed tile for
-  // Apple and PWA icons, and a padded tile for the maskable safe zone.
-  const iconSvg = squareSvg(fraunces.display, { bg: null, margin: 40 });
+  // Square sources: a paper-backed tile for the Apple and PWA icons, and a
+  // padded tile for the maskable safe zone.
   const filledSvg = squareSvg(fraunces.display, {
     bg: BRAND.paper,
     margin: 56,
@@ -205,12 +240,11 @@ async function main(): Promise<void> {
     margin: 104,
   });
 
+  // The tab icon follows the theme, so it is two SVGs the runtime swaps between,
+  // not a single baked file. Served as-is (SVG favicons need no rasterizing).
   console.log('Favicons:');
-  await write('favicon.svg', iconSvg);
-  const ico16 = renderPng(iconSvg, 16);
-  const ico32 = renderPng(iconSvg, 32);
-  const ico48 = renderPng(iconSvg, 48);
-  await write('favicon.ico', await pngToIco([ico16, ico32, ico48]));
+  await write('favicon-cute.svg', faviconCuteSvg());
+  await write('favicon-classic.svg', faviconClassicSvg());
   await write('apple-touch-icon.png', renderPng(filledSvg, 180));
   await write('icon-192.png', renderPng(filledSvg, 192));
   await write('icon-512.png', renderPng(filledSvg, 512));
