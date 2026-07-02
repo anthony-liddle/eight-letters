@@ -43,7 +43,7 @@ function shareBody(out: string, result: DailyShareResult): string {
 describe('buildShareText', () => {
   test('produces the exact block for the worked example', () => {
     const expected = [
-      'Peach of a Word · Jun 18',
+      '🍑 Peach of a Word · Jun 18',
       'Peachy Keen Supreme',
       '🟥🟥🟥🟥🟥🟪🟪🟪🟪🟪',
       '✦ 29 Uncommon · 4 Rare · 2 Mythic',
@@ -55,8 +55,15 @@ describe('buildShareText', () => {
 
   test('reads the title from the result, never a hardcoded name', () => {
     const out = buildShareText(exampleResult({ title: 'Renamed Game' }));
-    expect(out.startsWith('Renamed Game · ')).toBe(true);
+    expect(out.startsWith('🍑 Renamed Game · ')).toBe(true);
     expect(out).not.toContain('Peach of a Word');
+  });
+
+  test('leads the title line with the peach mark', () => {
+    // The peach is the name's mark and the share signature; it rides the title
+    // line for every board, never the tier headline or the body.
+    const out = buildShareText(exampleResult({ title: 'Anything' }));
+    expect(out.split('\n')[0]).toBe('🍑 Anything · Jun 18');
   });
 
   describe('the tier headline', () => {

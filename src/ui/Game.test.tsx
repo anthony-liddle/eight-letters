@@ -601,7 +601,7 @@ describe('Game edition complete', () => {
     const text = writeText.mock.calls[0]![0] as string;
     // Leads with the name and the earned completion crown, theme-skinned; the
     // retired "Set X/Y" gate is gone, and points support rather than lead.
-    expect(text).toMatch(/^Peach of a Word · /);
+    expect(text).toMatch(/^🍑 Peach of a Word · /);
     expect(text).toMatch(/The Complete Works|Peachy Keen Supreme/);
     expect(text).not.toMatch(/Set \d+\/\d+/);
     expect(text).toMatch(/pts/);

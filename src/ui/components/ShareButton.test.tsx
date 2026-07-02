@@ -72,8 +72,9 @@ describe('ShareButton', () => {
 
     expect(share).toHaveBeenCalledTimes(1);
     const payload = share.mock.calls[0]![0] as ShareData;
-    // The title is read from the display-name constant, not hardcoded here.
-    expect(payload.text?.startsWith(APP_DISPLAY_NAME)).toBe(true);
+    // The title is read from the display-name constant, not hardcoded here, and
+    // the copied text carries the peach mark that leads the share.
+    expect(payload.text?.startsWith(`🍑 ${APP_DISPLAY_NAME}`)).toBe(true);
     expect(payload.text).toContain('🟥');
   });
 

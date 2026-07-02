@@ -110,7 +110,10 @@ export function buildShareText(result: DailyShareResult): string {
   // new model; the retired "Set X/Y" gate is gone. Points support, they do not
   // lead. The tier label carries the completion signal on a finished board.
   const lines = [
-    `${result.title} · ${shortDate(result.date)}`,
+    // The peach leads the title line: the name's mark and the share's signature,
+    // the same in both themes. It stays on the title, never the body, so the
+    // spoiler guard (which strips the title as chrome) is untouched.
+    `🍑 ${result.title} · ${shortDate(result.date)}`,
     result.tierLabel,
     scoreRow(result.setPoints, result.offPagePoints),
   ];
