@@ -5,6 +5,24 @@ export type Theme = 'letterpress' | 'cute';
 const STORAGE_KEY = 'e8-theme';
 
 /**
+ * The theme a visitor lands on with no saved preference. Cute is the front door:
+ * the world meets the game the way Bea plays it. Letterpress stays a first-class
+ * toggle option and, once chosen, persists. This default must match the value
+ * baked into index.html's <html data-theme> so the pre-paint theme and the app
+ * theme agree and there is no flash. Both are asserted against this constant.
+ */
+export const DEFAULT_THEME: Theme = 'cute';
+
+/**
+ * Resolve a theme from a data-theme attribute (or saved value). A known theme is
+ * honored, so a saved preference always wins; anything else, including an absent
+ * value, falls back to the default. This is the single resolver the runtime uses.
+ */
+export function resolveTheme(value: string | null | undefined): Theme {
+  return value === 'cute' || value === 'letterpress' ? value : DEFAULT_THEME;
+}
+
+/**
  * The document root is the single source of truth for the theme: an inline head
  * script sets it before paint (no flash). This is a tiny external store over it
  * so every consumer (toolbar, colophon, ...) stays in sync when it changes.
@@ -12,9 +30,7 @@ const STORAGE_KEY = 'e8-theme';
 const listeners = new Set<() => void>();
 
 function readTheme(): Theme {
-  return document.documentElement.dataset.theme === 'cute'
-    ? 'cute'
-    : 'letterpress';
+  return resolveTheme(document.documentElement.dataset.theme);
 }
 
 function setTheme(next: Theme): void {
@@ -32,7 +48,7 @@ function subscribe(notify: () => void): () => void {
   return () => listeners.delete(notify);
 }
 
-const serverSnapshot = (): Theme => 'letterpress';
+const serverSnapshot = (): Theme => DEFAULT_THEME;
 
 export function useTheme(): [Theme, (theme: Theme) => void] {
   const theme = useSyncExternalStore(subscribe, readTheme, serverSnapshot);

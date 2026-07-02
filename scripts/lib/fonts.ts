@@ -4,15 +4,14 @@ import opentype from 'opentype.js';
 import { CACHE_DIR, ensureDir } from './util.ts';
 
 /**
- * Fraunces is the app's display face. The rasterizer needs the real font files,
- * since resvg does not read system fonts. We pull static weights from the
- * Fontsource CDN (the same family the app loads from Google Fonts) and cache
- * them, so icon builds are reproducible and offline after the first run.
+ * The rasterizer needs the real font files, since resvg does not read system
+ * fonts. We pull static weights from the Fontsource CDN (the same families the
+ * app loads from Google Fonts) and cache them, so icon builds are reproducible
+ * and offline after the first run. Fraunces is the letterpress display face;
+ * Fredoka and Nunito are the cute faces, used for the cute Open Graph card.
  */
-const FONT_URLS: Record<number, string> = {
-  400: 'https://cdn.jsdelivr.net/fontsource/fonts/fraunces@latest/latin-400-normal.ttf',
-  600: 'https://cdn.jsdelivr.net/fontsource/fonts/fraunces@latest/latin-600-normal.ttf',
-};
+const fontsourceUrl = (family: string, weight: number): string =>
+  `https://cdn.jsdelivr.net/fontsource/fonts/${family}@latest/latin-${weight}-normal.ttf`;
 
 async function fileExists(path: string): Promise<boolean> {
   try {
@@ -23,13 +22,15 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function ensureWeight(weight: number): Promise<string> {
+/**
+ * Cache a single Fontsource weight to disk and return its path. The cache file
+ * name carries the family and weight so different faces never collide.
+ */
+async function ensureFont(family: string, weight: number): Promise<string> {
   await ensureDir(CACHE_DIR);
-  const path = join(CACHE_DIR, `fraunces-${weight}.ttf`);
+  const path = join(CACHE_DIR, `${family}-${weight}.ttf`);
   if (!(await fileExists(path))) {
-    const url = FONT_URLS[weight];
-    if (!url) throw new Error(`No font URL for weight ${weight}`);
-    const res = await fetch(url);
+    const res = await fetch(fontsourceUrl(family, weight));
     if (!res.ok) throw new Error(`Font download failed: HTTP ${res.status}`);
     await writeFile(path, Buffer.from(await res.arrayBuffer()));
   }
@@ -44,13 +45,30 @@ export interface Fraunces {
 }
 
 export async function loadFraunces(): Promise<Fraunces> {
-  const path400 = await ensureWeight(400);
-  const path600 = await ensureWeight(600);
+  const path400 = await ensureFont('fraunces', 400);
+  const path600 = await ensureFont('fraunces', 600);
   const buf = await readFile(path600);
   const display = opentype.parse(
     buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
   );
   return { files: [path400, path600], display };
+}
+
+/**
+ * The cute faces for the Open Graph card: Fredoka (the rounded display face used
+ * for the wordmark and letter tiles) and Nunito (the body face used for the small
+ * kicker). Returns the cached TTF paths for the rasterizer's font list. The
+ * font-family names in the cute SVG must match these families exactly, or resvg
+ * falls back silently.
+ */
+export interface CuteFonts {
+  files: string[];
+}
+
+export async function loadCuteFonts(): Promise<CuteFonts> {
+  const fredoka = await ensureFont('fredoka', 600);
+  const nunito = await ensureFont('nunito', 700);
+  return { files: [fredoka, nunito] };
 }
 
 /**
