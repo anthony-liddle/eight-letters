@@ -133,6 +133,35 @@ describe('index.html favicon', () => {
   });
 });
 
+describe('PWA home-screen icons', () => {
+  const publicDir = resolve(process.cwd(), 'public');
+  const manifest = JSON.parse(
+    readFileSync(resolve(publicDir, 'site.webmanifest'), 'utf8'),
+  ) as { icons: { src: string; sizes: string; purpose?: string }[] };
+
+  test('index.html references an apple-touch-icon that resolves on disk', () => {
+    expect(html).toContain(
+      'rel="apple-touch-icon" href="/apple-touch-icon.png"',
+    );
+    const file = resolve(publicDir, 'apple-touch-icon.png');
+    expect(existsSync(file)).toBe(true);
+    expect(statSync(file).size).toBeGreaterThan(1000);
+  });
+
+  test('the manifest icons all resolve on disk and are non-trivial', () => {
+    expect(manifest.icons.length).toBeGreaterThan(0);
+    for (const icon of manifest.icons) {
+      const file = resolve(publicDir, icon.src.replace(/^\//, ''));
+      expect(existsSync(file)).toBe(true);
+      expect(statSync(file).size).toBeGreaterThan(1000);
+    }
+  });
+
+  test('a maskable icon is declared, so Android installs are composed for it', () => {
+    expect(manifest.icons.some((i) => i.purpose === 'maskable')).toBe(true);
+  });
+});
+
 describe('index.html share image', () => {
   test('references the OG and Twitter image at the same path', () => {
     expect(html).toMatch(/property="og:image" content="[^"]*\/og\.png"/);

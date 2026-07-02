@@ -1,25 +1,21 @@
 /**
- * Build-time image pipeline. Generates the Open Graph share image and the full
- * favicon set from source SVGs, rasterized with the app's Fraunces face. Runs
- * offline after the first font fetch; every output is a byproduct, never a
- * hand-exported binary.
+ * Build-time image pipeline. Generates the Open Graph share image, the tab
+ * favicons, and the home-screen icon set from source SVGs. Runs offline after
+ * the first font fetch; every output is a byproduct, never a hand-exported
+ * binary.
  *
  *   pnpm icons:build
  *
  * Outputs to public/:
  *   favicon-cute.svg, favicon-classic.svg (the theme-aware tab icons),
- *   apple-touch-icon.png, icon-192.png, icon-512.png, icon-maskable-512.png,
- *   og.png (1200x630), site.webmanifest
+ *   apple-touch-icon.png, icon-192.png, icon-512.png, icon-maskable-512.png
+ *   (the peach home-screen icons), og.png (1200x630), site.webmanifest
  */
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
-import {
-  loadFraunces,
-  loadCuteFonts,
-  centeredGlyphPath,
-  type Fraunces,
-} from './lib/fonts.ts';
+import { loadCuteFonts } from './lib/fonts.ts';
+import { PEACH_MARK_PATHS, pwaIconSvg } from './lib/icons.ts';
 import { REPO_ROOT, ensureDir } from './lib/util.ts';
 
 const PUBLIC_DIR = join(REPO_ROOT, 'public');
@@ -59,52 +55,7 @@ const DESCRIPTION =
 const OG_ALT =
   'The wordmark Peach of a Word in the cute theme: a smiling cartoon peach above the name in rounded type, over a row of soft letter tiles, one in peach.';
 
-// --- Square icon (the type sort bearing an 8) ----------------------------
-
-interface SquareOpts {
-  /** Background fill, or null for transparent. */
-  bg: string | null;
-  /** Margin from the 512 edge to the tile. Larger = more safe-zone padding. */
-  margin: number;
-}
-
-function squareSvg(font: Fraunces['display'], opts: SquareOpts): string {
-  const size = 512;
-  const m = opts.margin;
-  const inner = size - 2 * m;
-  const rx = Math.round(inner * 0.085);
-  const stroke = Math.max(6, inner * 0.024);
-  const footY = m + inner * 0.82;
-  const footH = Math.max(4, inner * 0.022);
-  const glyphSize = inner * 0.66;
-  const d = centeredGlyphPath(font, '8', size / 2, m + inner * 0.45, glyphSize);
-
-  const bg = opts.bg
-    ? `<rect width="${size}" height="${size}" fill="${opts.bg}"/>`
-    : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  ${bg}
-  <rect x="${m}" y="${m}" width="${inner}" height="${inner}" rx="${rx}" fill="${BRAND.tileFace}" stroke="${BRAND.ink}" stroke-width="${stroke}"/>
-  <rect x="${m + inner * 0.16}" y="${footY}" width="${inner * 0.68}" height="${footH}" rx="3" fill="${BRAND.foot}"/>
-  <path d="${d}" fill="${BRAND.ink}"/>
-</svg>`;
-}
-
 // --- Shared marks --------------------------------------------------------
-
-/**
- * The smiling peach mark, the same original art the app draws in the cute theme
- * (Decorations peach1), on its native 0-100 canvas. Shared by the OG card and
- * the cute favicon so the icon system is one peach.
- */
-const PEACH_MARK_PATHS = `<path d="M50 12c4-8 14-9 18-4-2 6-9 9-14 8z" fill="#8FD3B6"/>
-    <path d="M50 16c20 0 34 16 34 36 0 22-16 38-34 38S16 74 16 52c0-20 14-36 34-36z" fill="#FFC27A"/>
-    <path d="M50 16c-9 0-17 4-23 11 7 4 15 5 23 5s16-1 23-5c-6-7-14-11-23-11z" fill="#FFD79B" opacity=".7"/>
-    <circle cx="40" cy="58" r="3.4" fill="#7A4A33"/>
-    <circle cx="60" cy="58" r="3.4" fill="#7A4A33"/>
-    <circle cx="34" cy="66" r="4.5" fill="#FF9DAE" opacity=".7"/>
-    <circle cx="66" cy="66" r="4.5" fill="#FF9DAE" opacity=".7"/>
-    <path d="M45 67c3 3 7 3 10 0" stroke="#7A4A33" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
 
 /** The peach mark placed on the card, centered on cx at the given top y. */
 function peachMark(cx: number, top: number, size: number): string {
@@ -227,24 +178,21 @@ async function write(name: string, contents: string | Buffer): Promise<void> {
 async function main(): Promise<void> {
   console.log('Building icons and the OG image.\n');
   await ensureDir(PUBLIC_DIR);
-  const fraunces = await loadFraunces();
 
-  // Square sources: a paper-backed tile for the Apple and PWA icons, and a
-  // padded tile for the maskable safe zone.
-  const filledSvg = squareSvg(fraunces.display, {
-    bg: BRAND.paper,
-    margin: 56,
-  });
-  const maskableSvg = squareSvg(fraunces.display, {
-    bg: BRAND.paper,
-    margin: 104,
-  });
+  // The home-screen icons are the peach on the cute peach-cream, matching the
+  // OG card, the share, and the default face. One install-time icon (no theme
+  // swap): the standard composition for Apple and the "any" manifest icons, the
+  // padded composition for the maskable icon so an Android crop cuts only
+  // background.
+  const filledSvg = pwaIconSvg({ maskable: false, background: CUTE.paperTop });
+  const maskableSvg = pwaIconSvg({ maskable: true, background: CUTE.paperTop });
 
   // The tab icon follows the theme, so it is two SVGs the runtime swaps between,
   // not a single baked file. Served as-is (SVG favicons need no rasterizing).
   console.log('Favicons:');
   await write('favicon-cute.svg', faviconCuteSvg());
   await write('favicon-classic.svg', faviconClassicSvg());
+  console.log('Home-screen icons:');
   await write('apple-touch-icon.png', renderPng(filledSvg, 180));
   await write('icon-192.png', renderPng(filledSvg, 192));
   await write('icon-512.png', renderPng(filledSvg, 512));
